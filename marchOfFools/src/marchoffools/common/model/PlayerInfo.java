@@ -1,14 +1,13 @@
 package marchoffools.common.model;
 
 import java.io.Serializable;
-import marchoffools.common.message.SelectCharacterMessage.CharacterType;
 
 public class PlayerInfo implements Serializable {
     private static final long serialVersionUID = 1L;
     
     private String playerId;
     private String playerName;
-    private CharacterType character;
+    private int characterType;    // RoomActionMessage의 캐릭터 상수 사용
     private boolean ready;
     private double x;
     private double y;
@@ -23,7 +22,7 @@ public class PlayerInfo implements Serializable {
         this.health = 100;
     }
     
-    // Getter & Setter
+    // Getters and Setters
     public String getPlayerId() {
         return playerId;
     }
@@ -40,12 +39,12 @@ public class PlayerInfo implements Serializable {
         this.playerName = playerName;
     }
     
-    public CharacterType getCharacter() {
-        return character;
+    public int getCharacterType() {
+        return characterType;
     }
     
-    public void setCharacter(CharacterType character) {
-        this.character = character;
+    public void setCharacterType(int characterType) {
+        this.characterType = characterType;
     }
     
     public boolean isReady() {
