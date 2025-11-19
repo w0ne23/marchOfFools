@@ -1,39 +1,20 @@
 package marchoffools.common.protocol;
 
 public enum MessageType {
-	// 연결
+    // 클라이언트 → 서버
+    ROOM_ACTION,      // 방 관련 모든 액션
+    GAME_INPUT,       // 게임 입력 (스킬/아이템/감정)
+    
+    // 서버 → 클라이언트
+    ROOM_INFO,        // 방 정보/상태 업데이트
+    GAME_STATE,       // 게임 상태 동기화
+    GAME_RESULT,      // 게임 결과
+    RESPONSE,         // 응답/에러
+    
+    // 양방향
+    CHAT,             // 채팅
+    
+    // 연결
     CONNECT,
-    DISCONNECT,
-    HEARTBEAT,
-    
-    // 방 관련
-    CREATE_ROOM,
-    JOIN_ROOM,
-    QUICK_MATCH,
-    LEAVE_ROOM,
-    ROOM_INFO,
-    ROOM_LIST,
-    
-    // 대기실
-    SELECT_CHARACTER,
-    PLAYER_READY,
-    CHAT,
-    START_GAME,
-    
-    // 인게임
-    PLAYER_INPUT,
-    EMOTION,
-    GAME_STATE_UPDATE,
-    OBSTACLE_UPDATE,
-    ITEM_USE,
-    GAME_OVER,
-    
-    // 점수/통계
-    GAME_RESULT,
-    SCOREBOARD_REQUEST,
-    SCOREBOARD_DATA,
-    
-    // 응답/오류
-    SUCCESS,
-    ERROR
+    DISCONNECT
 }
