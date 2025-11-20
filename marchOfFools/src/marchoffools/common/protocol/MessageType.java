@@ -13,8 +13,4 @@ public enum MessageType {
     
     // 양방향
     CHAT,             // 채팅
-    
-    // 연결
-    CONNECT,
-    DISCONNECT
 }

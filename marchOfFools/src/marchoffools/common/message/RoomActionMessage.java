@@ -6,13 +6,15 @@ public class RoomActionMessage extends Message {
     private static final long serialVersionUID = 1L;
     
     // 액션 타입 상수
-    public static final int CREATE_ROOM = 1;
-    public static final int JOIN_ROOM = 2;
-    public static final int LEAVE_ROOM = 3;
-    public static final int QUICK_MATCH = 4;
-    public static final int SELECT_CHARACTER = 5;
-    public static final int PLAYER_READY = 6;
-    public static final int START_GAME = 7;
+    public static final int CONNECT = 0;          // 서버 연결
+    public static final int DISCONNECT = 1;       // 서버 연결 종료
+    public static final int CREATE_ROOM = 2;
+    public static final int JOIN_ROOM = 3;
+    public static final int LEAVE_ROOM = 4;
+    public static final int QUICK_MATCH = 5;
+    public static final int SELECT_CHARACTER = 6;
+    public static final int PLAYER_READY = 7;
+    public static final int START_GAME = 8;
     
     // 캐릭터 타입 상수
     public static final int CHARACTER_KNIGHT = 1;  // 기사
@@ -21,8 +23,10 @@ public class RoomActionMessage extends Message {
     private int action;           // 액션 타입
     private String roomId;        // 방 ID (입장/퇴장 시)
     private String roomName;      // 방 이름 (생성 시)
+    private String playerName;    // 플레이어 이름 (연결 시)
     private int characterType;    // 캐릭터 타입 (선택 시)
     private boolean ready;        // 준비 상태
+    private String reason;        // 종료 사유 (연결 종료 시)
     
     public RoomActionMessage() {
         super();
@@ -58,6 +62,14 @@ public class RoomActionMessage extends Message {
         this.roomName = roomName;
     }
     
+    public String getPlayerName() {
+        return playerName;
+    }
+    
+    public void setPlayerName(String playerName) {
+        this.playerName = playerName;
+    }
+    
     public int getCharacterType() {
         return characterType;
     }
@@ -74,12 +86,22 @@ public class RoomActionMessage extends Message {
         this.ready = ready;
     }
     
+    public String getReason() {
+        return reason;
+    }
+    
+    public void setReason(String reason) {
+        this.reason = reason;
+    }
+    
     @Override
     public String toString() {
         return "RoomActionMessage{action=" + action + 
                ", playerId=" + playerId + 
                ", roomId=" + roomId + 
+               ", playerName=" + playerName +
                ", characterType=" + characterType + 
-               ", ready=" + ready + "}";
+               ", ready=" + ready + 
+               ", reason=" + reason + "}";
     }
 }
