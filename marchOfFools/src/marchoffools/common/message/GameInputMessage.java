@@ -6,8 +6,6 @@ public class GameInputMessage extends Message {
     private static final long serialVersionUID = 1L;
     
     // 입력 타입 상수
-    public static final int MOVE_LEFT = 1;
-    public static final int MOVE_RIGHT = 2;
     public static final int JUMP = 3;
     public static final int ATTACK = 4;         // 기사 스킬
     public static final int USE_ITEM = 5;       // 아이템 사용
