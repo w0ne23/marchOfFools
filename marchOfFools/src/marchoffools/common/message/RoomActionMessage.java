@@ -13,19 +13,20 @@ public class RoomActionMessage extends Message {
     public static final int JOIN_ROOM = 4;
     public static final int LEAVE_ROOM = 5;
     public static final int QUICK_MATCH = 6;
-    public static final int SELECT_CHARACTER = 7;
-    public static final int PLAYER_READY = 8;
-    public static final int START_GAME = 9;
+    public static final int REQUEST_RANDOM_ROLE = 7;
+    public static final int SELECT_CHARACTER = 8;
+    public static final int PLAYER_READY = 9;
+    public static final int START_GAME = 10;
     
     // 캐릭터 타입 상수
-    public static final int CHARACTER_NONE = 0;
-    public static final int CHARACTER_KNIGHT = 1;  // 기사
-    public static final int CHARACTER_HORSE = 2;   // 기마
+    public static final int ROLE_NONE = 0;
+    public static final int ROLE_KNIGHT = 1;  // 기사
+    public static final int ROLE_HORSE = 2;   // 기마
     
     private int action;           // 액션 타입
     private String roomId;        // 방 ID (입장/퇴장 시)
     private String playerName;    // 플레이어 이름 (연결 시)
-    private int characterType;    // 캐릭터 타입 (선택 시)
+    private int roleType;    // 캐릭터 타입 (선택 시)
     private boolean ready;        // 준비 상태
     
     public RoomActionMessage() {
@@ -62,12 +63,12 @@ public class RoomActionMessage extends Message {
         this.playerName = playerName;
     }
     
-    public int getCharacterType() {
-        return characterType;
+    public int getRoleType() {
+        return roleType;
     }
     
-    public void setCharacterType(int characterType) {
-        this.characterType = characterType;
+    public void setRoleType(int characterType) {
+        this.roleType = characterType;
     }
     
     public boolean isReady() {
@@ -84,7 +85,7 @@ public class RoomActionMessage extends Message {
                ", playerId=" + playerId + 
                ", roomId=" + roomId + 
                ", playerName=" + playerName +
-               ", characterType=" + characterType + 
+               ", roleType=" + roleType + 
                ", ready=" + ready + "}";
     }
 }

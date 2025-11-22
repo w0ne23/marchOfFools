@@ -13,6 +13,7 @@ public class ResponseMessage extends Message {
     
     // 연결 관련 오류
     public static final int ALREADY_CONNECTED = 411;          // 이미 연결됨
+    public static final int INVALID_PLAYER_NAME = 412;        // 잘못된 플레이어 이름 형식
     
     // 방 관련 오류
     public static final int ROOM_NOT_FOUND = 420;             // 방을 찾을 수 없음
@@ -27,6 +28,8 @@ public class ResponseMessage extends Message {
     // 역할 관련 오류 
     public static final int ROLE_NOT_SELECTED = 440;          // 역할 미선택
     public static final int ROLE_ALREADY_TAKEN = 441;          // 두 플레이어가 같은 역할 (시작 불가)
+    public static final int ROLE_INVALID_SELECTION = 442;     // 유효하지 않은 역할 선택 (없는 역할)
+    public static final int ROLE_CONFIRMED_CHANGE_NOT_ALLOWED = 443; // 역할 확정 후 변경 불가
     
     // 입력/액션 관련 오류
     public static final int INVALID_INPUT = 450;              // 잘못된 입력
