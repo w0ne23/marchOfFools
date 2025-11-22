@@ -7,15 +7,18 @@ public class PlayerInfo implements Serializable {
     
     private String playerId;
     private String playerName;
-    private int characterType;    // RoomActionMessage의 캐릭터 상수 사용
+    private int role;;    // RoomActionMessage의 캐릭터 상수 사용
     private boolean ready;
+    private int score; 
     
     public PlayerInfo() {}
     
     public PlayerInfo(String playerId, String playerName) {
         this.playerId = playerId;
         this.playerName = playerName;
+        this.role = 0; // ROLE_NONE
         this.ready = false;
+        this.score = 0;
     }
     
     // Getters and Setters
@@ -35,12 +38,12 @@ public class PlayerInfo implements Serializable {
         this.playerName = playerName;
     }
     
-    public int getCharacterType() {
-        return characterType;
+    public int getRole() {
+        return role;
     }
     
-    public void setCharacterType(int characterType) {
-        this.characterType = characterType;
+    public void setRole(int role) {
+        this.role = role;
     }
     
     public boolean isReady() {
@@ -49,5 +52,24 @@ public class PlayerInfo implements Serializable {
     
     public void setReady(boolean ready) {
         this.ready = ready;
+    }
+    
+    public int getScore() {
+        return score;
+    }
+    
+    public void setScore(int score) {
+        this.score = score;
+    }
+    
+    @Override
+    public String toString() {
+        return "PlayerInfo{" +
+               "playerId='" + playerId + '\'' +
+               ", playerName='" + playerName + '\'' +
+               ", role=" + role +
+               ", ready=" + ready +
+               ", score=" + score +
+               '}';
     }
 }

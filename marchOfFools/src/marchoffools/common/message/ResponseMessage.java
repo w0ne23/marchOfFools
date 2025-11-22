@@ -16,9 +16,11 @@ public class ResponseMessage extends Message {
     public static final int INVALID_PLAYER_NAME = 412;        // 잘못된 플레이어 이름 형식
     
     // 방 관련 오류
-    public static final int ROOM_NOT_FOUND = 420;             // 방을 찾을 수 없음
-    public static final int ROOM_FULL = 421;                  // 방이 가득 찼음 (2명)
-    // public static final int CANNOT_LEAVE_PLAYING = 422;    // [추후 필요 시 추가] 게임 중 나갈 수 없음
+    public static final int ROOM_NOT_FOUND = 420;  			  // 방을 찾을 수 없음
+    public static final int ALREADY_IN_ROOM= 421; 			  // 방에 이미 들어옴
+    public static final int NOT_IN_ROOM = 422;				  // 방에 있지 않음
+    public static final int ROOM_FULL = 423;                  // 방이 가득 찼음 (2명)
+    // public static final int CANNOT_LEAVE_PLAYING = 424;    // [추후 필요 시 추가] 게임 중 나갈 수 없음
     
     // 게임 관련 오류
     public static final int GAME_ALREADY_STARTED = 430;       // 게임이 이미 시작됨

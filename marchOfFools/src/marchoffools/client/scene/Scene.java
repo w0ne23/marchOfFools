@@ -13,7 +13,7 @@ public abstract class Scene extends JPanel {
 	protected ImageIcon icon;
 	protected Image img;
 	
-	
+
 	public Scene(String icon) {
 		this.icon = new ImageIcon(icon);
 		img = this.icon.getImage();
@@ -24,6 +24,10 @@ public abstract class Scene extends JPanel {
 	public void setContext(SceneContext context) {
 		this.context = context;
 	}
+	
+	public SceneContext getContext() {
+        return context;
+    }
 
     protected void switchTo(Scene newScene) {
         if (context != null) {
