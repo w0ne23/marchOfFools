@@ -9,7 +9,6 @@ public class PlayerInfo implements Serializable {
     private String playerName;
     private int characterType;    // RoomActionMessage의 캐릭터 상수 사용
     private boolean ready;
-    private int health;
     
     public PlayerInfo() {}
     
@@ -17,7 +16,6 @@ public class PlayerInfo implements Serializable {
         this.playerId = playerId;
         this.playerName = playerName;
         this.ready = false;
-        this.health = 100;
     }
     
     // Getters and Setters
@@ -51,13 +49,5 @@ public class PlayerInfo implements Serializable {
     
     public void setReady(boolean ready) {
         this.ready = ready;
-    }
-    
-    public int getHealth() {
-        return health;
-    }
-    
-    public void setHealth(int health) {
-        this.health = health;
     }
 }

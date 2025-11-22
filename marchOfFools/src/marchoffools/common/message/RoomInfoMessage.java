@@ -9,6 +9,7 @@ public class RoomInfoMessage extends Message {
     private static final long serialVersionUID = 1L;
     
     // 방 상태 상수
+    public static final int STATUS_NONE = 0;
     public static final int ROOM_CREATED = 1;
     public static final int ROOM_UPDATED = 2;
     public static final int PLAYER_JOINED = 3;
@@ -19,7 +20,6 @@ public class RoomInfoMessage extends Message {
     
     private int status;               // 방 상태
     private String roomId;            // 방 ID
-    private String roomName;          // 방 이름
     private String hostId;            // 방장 ID
     private List<PlayerInfo> players; // 플레이어 목록
     private boolean canStart;         // 게임 시작 가능 여부
@@ -51,14 +51,6 @@ public class RoomInfoMessage extends Message {
     
     public void setRoomId(String roomId) {
         this.roomId = roomId;
-    }
-    
-    public String getRoomName() {
-        return roomName;
-    }
-    
-    public void setRoomName(String roomName) {
-        this.roomName = roomName;
     }
     
     public String getHostId() {
