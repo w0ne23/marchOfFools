@@ -3,4 +3,8 @@
 .classpath
 .project
 .settings/
-/bin
+.DS_Store
+
+/bin/
+/out/
+/dist/

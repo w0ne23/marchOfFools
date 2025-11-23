@@ -1,4 +1,4 @@
-package marchoffools;
+package marchoffools.client.util;
 
 import java.awt.Color;
 

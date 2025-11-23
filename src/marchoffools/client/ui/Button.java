@@ -1,9 +1,11 @@
-package marchoffools;
+package marchoffools.client.ui;
 
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
 import javax.swing.JButton;
+
+import marchoffools.client.util.Assets;
 
 // 일단은 단일 클래스로 구현 후 디자인작업...
 public class Button extends JButton{
