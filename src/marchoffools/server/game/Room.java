@@ -59,6 +59,15 @@ public class Room {
             System.out.println("방 " + roomId + "에서 플레이어 제거: " + removed.getPlayerName());
         }
         
+        // 방장이 나갔고 방에 다른 플레이어가 남아있으면 방장 위임
+        if (playerId.equals(hostId) && !players.isEmpty()) {
+            String newHostId = players.keySet().iterator().next();
+            PlayerInfo newHost = players.get(newHostId);
+            this.hostId = newHostId;
+            
+            System.out.println("방장 위임: " + newHost.getPlayerName() + " (ID: " + newHostId + ")");
+        }
+        
         if (players.size() < MAX_PLAYERS) {
             full = false;
         }
@@ -144,6 +153,13 @@ public class Room {
         
         Packet packet = new Packet(MessageType.ROOM_INFO, msg);
         
+        for (ClientHandler handler : handlers.values()) {
+            handler.sendPacket(packet);
+        }
+    }
+    
+    // 같은 방의 모든 플레이어에게 패킷 전송
+    public void broadcastPacket(Packet packet) {
         for (ClientHandler handler : handlers.values()) {
             handler.sendPacket(packet);
         }
