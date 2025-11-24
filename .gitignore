@@ -1,5 +1,8 @@
 /.metadata/
 /.recommenders/
+
+*.class
+
 .classpath
 .project
 .settings/
@@ -8,3 +11,4 @@
 /bin/
 /out/
 /dist/
+
