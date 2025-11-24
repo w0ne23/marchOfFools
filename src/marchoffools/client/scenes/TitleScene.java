@@ -1,11 +1,11 @@
-package marchoffools.client.scene;
+package marchoffools.client.scenes;
 
-import marchoffools.client.scene.Scene;
+import marchoffools.client.core.Scene;
 import marchoffools.client.ui.Button;
 
-import static marchoffools.client.util.Assets.Backgrounds.DEFAULT;
-import static marchoffools.client.util.Assets.Colors.*;
-import static marchoffools.client.util.Config.*;
+import static marchoffools.client.core.Assets.Backgrounds.DEFAULT;
+import static marchoffools.client.core.Assets.Colors.*;
+import static marchoffools.client.core.Config.*;
 
 import java.awt.Graphics;
 import java.awt.GridLayout;

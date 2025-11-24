@@ -17,6 +17,7 @@ public class RoomActionMessage extends Message {
     public static final int SELECT_CHARACTER = 8;
     public static final int PLAYER_READY = 9;
     public static final int START_GAME = 10;
+    public static final int CANCEL_MATCH = 11;
     
     // 캐릭터 타입 상수
     public static final int ROLE_NONE = 0;

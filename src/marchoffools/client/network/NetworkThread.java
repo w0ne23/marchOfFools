@@ -7,12 +7,12 @@ import marchoffools.common.protocol.Packet;
 
 public class NetworkThread extends Thread {
     
-    private ClientSocket clientSocket;
+    private NetworkManager nm;
     private ObjectInputStream in;
     private boolean running;
     
-    public NetworkThread(ClientSocket clientSocket, ObjectInputStream in) {
-        this.clientSocket = clientSocket;
+    public NetworkThread(NetworkManager nm, ObjectInputStream in) {
+        this.nm = nm;
         this.in = in;
         this.running = true;
     }
@@ -24,7 +24,7 @@ public class NetworkThread extends Thread {
         try {
             while (running) {
                 Packet packet = (Packet) in.readObject();
-                clientSocket.handlePacket(packet);
+                nm.handlePacket(packet);
             }
         } catch (IOException e) {
             if (running) {

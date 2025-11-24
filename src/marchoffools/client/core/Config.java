@@ -1,4 +1,4 @@
-package marchoffools.client.util;
+package marchoffools.client.core;
 
 public class Config {
     public static final int WINDOW_WIDTH = 1366;
