@@ -15,7 +15,7 @@ import marchoffools.common.protocol.MessageType;
 import marchoffools.common.protocol.Packet;
 import marchoffools.common.message.*;
 
-public class ClientSocket {
+public class NetworkManager {
     
     private Socket socket;
     private ObjectOutputStream out;
@@ -27,7 +27,7 @@ public class ClientSocket {
     private String playerName;
     private boolean connected;
     
-    public ClientSocket(Frame frame) {
+    public NetworkManager(Frame frame) {
         this.frame = frame;
         this.playerId = UUID.randomUUID().toString();
         this.connected = false;
@@ -63,6 +63,8 @@ public class ClientSocket {
             // 수신 스레드 시작
             networkThread = new NetworkThread(this, in);
             networkThread.start();
+
+            connected = true;
             
             // CONNECT 메시지 전송
             RoomActionMessage connectMsg = new RoomActionMessage(
@@ -73,7 +75,6 @@ public class ClientSocket {
             
             sendMessage(MessageType.ROOM_ACTION, connectMsg);
             
-            connected = true;
             return true;
             
         } catch (IOException e) {
