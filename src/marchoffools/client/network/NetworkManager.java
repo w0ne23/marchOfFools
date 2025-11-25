@@ -195,23 +195,7 @@ public class NetworkManager {
         System.out.println("Players: " + msg.getPlayers().size());
         System.out.println("Can Start: " + msg.isCanStart());
         
-        // 현재 Scene 확인
-        Scene currentScene = frame.getCurrentScene();
-        
-        if (currentScene instanceof LobbyScene) {
-            // 이미 LobbyScene이면 업데이트만
-            System.out.println("LobbyScene 업데이트");
-            ((LobbyScene) currentScene).updateRoomInfo(msg);
-        } else {
-            // 다른 Scene이면 LobbyScene으로 전환
-            System.out.println("LobbyScene으로 전환");
-            SwingUtilities.invokeLater(() -> {
-                LobbyScene lobbyScene = new LobbyScene();
-                frame.switchScene(lobbyScene);
-                // Scene 전환 완료 후 데이터 설정
-                lobbyScene.updateRoomInfo(msg);
-            });
-        }
+        frame.handleRoomInfoReceived(msg);
     }
     
     private void handleChat(ChatMessage msg) {

@@ -134,14 +134,21 @@ public class Room {
     
     // 두 플레이어가 같은 역할인지 확인
     public boolean hasSameRoles() {
-        if (players.size() != 2) return false;
+    	Set<Integer> selectedRoles = new HashSet<>();
         
-        List<Integer> roles = new ArrayList<>();
         for (PlayerInfo player : players.values()) {
-            roles.add(player.getRole());
+            int role = player.getRole();
+            
+            // 역할이 NONE인 경우는 중복 검사에서 제외
+            if (role != RoomActionMessage.ROLE_NONE) {
+                if (selectedRoles.contains(role)) {
+                    return true; 
+                }
+                selectedRoles.add(role);
+            }
         }
-        
-        return roles.get(0).equals(roles.get(1)) && roles.get(0) != RoomActionMessage.ROLE_NONE;
+        // 중복이 없음
+        return false;
     }
     
     // 방 정보 브로드캐스트
