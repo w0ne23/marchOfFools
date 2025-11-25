@@ -29,7 +29,7 @@ public class Room {
     }
     
     // 플레이어 추가
-    public boolean addPlayer(String playerId, String playerName, ClientHandler handler) {
+    public synchronized boolean addPlayer(String playerId, String playerName, ClientHandler handler) {
         if (players.size() >= MAX_PLAYERS) {
             return false;
         }
@@ -51,7 +51,7 @@ public class Room {
     }
     
     // 플레이어 제거
-    public void removePlayer(String playerId) {
+    public synchronized void removePlayer(String playerId) {
         PlayerInfo removed = players.remove(playerId);
         handlers.remove(playerId);
         
@@ -74,7 +74,7 @@ public class Room {
     }
     
     // 역할 설정
-    public void setPlayerRole(String playerId, int role) {
+    public synchronized void setPlayerRole(String playerId, int role) {
         PlayerInfo player = players.get(playerId);
         if (player != null) {
             player.setRole(role);
@@ -88,7 +88,7 @@ public class Room {
     }
     
     // 역할이 이미 선택되었는지 확인
-    public boolean isRoleTaken(int role, String requestingPlayerId) {
+    public synchronized boolean isRoleTaken(int role, String requestingPlayerId) {
         for (Map.Entry<String, PlayerInfo> entry : players.entrySet()) {
             String playerId = entry.getKey();
             PlayerInfo player = entry.getValue();
@@ -101,7 +101,7 @@ public class Room {
     }
     
     // 준비 상태 설정
-    public void setPlayerReady(String playerId, boolean ready) {
+    public synchronized void setPlayerReady(String playerId, boolean ready) {
         PlayerInfo player = players.get(playerId);
         if (player != null) {
             player.setReady(ready);

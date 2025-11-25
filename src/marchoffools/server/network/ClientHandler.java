@@ -381,24 +381,36 @@ public class ClientHandler extends Thread {
     
     private void handleSelectCharacter(RoomActionMessage msg) {
         // 1. 방 정보 가져오기
-        if (currentRoomId == null) return;
+    	if (currentRoomId == null) {
+            sendResponse(ResponseMessage.error(
+                ResponseMessage.NOT_IN_ROOM,
+                "방에 입장해 있지 않습니다"
+            ));
+            return;
+        }
         RoomManager roomManager = server.getRoomManager();
         Room room = roomManager.getRoom(currentRoomId);
         
-        if (room == null) return;
+        if (room == null) {
+            sendResponse(ResponseMessage.error(
+                ResponseMessage.ROOM_NOT_FOUND,
+                "방을 찾을 수 없습니다"
+            ));
+            return;
+        }
 
-        // 2. 역할 중복 체크 (선택 사항: 게임 규칙에 따라 구현)
+        // 2. 역할 중복 체크 
         int requestedRole = msg.getRoleType();
-        // 이미 다른 사람이 그 역할을 골랐는지 확인 (Room에 isRoleTaken 메서드가 있다고 가정)
         if (room.isRoleTaken(requestedRole, playerId)) {
-             // 실패 시 에러 메시지 전송
-             sendResponse(ResponseMessage.error(ResponseMessage.ROLE_ALREADY_TAKEN, "이미 선택된 역할입니다."));
-             return;
+            sendResponse(ResponseMessage.error(
+                ResponseMessage.ROLE_ALREADY_TAKEN, 
+                "이미 선택된 역할입니다"
+            ));
+            return;
         }
 
         // 3. 방 객체의 데이터 업데이트 (동기화됨)
         room.setPlayerRole(playerId, requestedRole);
-        
         System.out.println("플레이어 역할 변경: " + playerName + " -> " + requestedRole);
 
         // 4. 변경된 정보를 방 안의 '모든' 클라이언트에게 전송
