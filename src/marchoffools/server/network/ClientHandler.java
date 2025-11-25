@@ -115,13 +115,11 @@ public class ClientHandler extends Thread {
                 break;
               
             case RoomActionMessage.SELECT_CHARACTER:  // TODO: Phase 3
-                System.out.println("역할 선택 요청: " + playerName);
-                sendResponse(ResponseMessage.success("역할 선택 기능은 Phase 3에서 구현됩니다"));
+            	handleSelectCharacter(msg);
                 break;
                 
             case RoomActionMessage.PLAYER_READY:  // TODO: Phase 3
-                System.out.println("준비 요청: " + playerName);
-                sendResponse(ResponseMessage.success("준비 기능은 Phase 3에서 구현됩니다"));
+            	handlePlayerReady(msg);
                 break;
                 
             case RoomActionMessage.START_GAME:  // TODO: Phase 4
@@ -381,6 +379,48 @@ public class ClientHandler extends Thread {
         room.broadcastPacket(packet);
     }
     
+    private void handleSelectCharacter(RoomActionMessage msg) {
+        // 1. 방 정보 가져오기
+        if (currentRoomId == null) return;
+        RoomManager roomManager = server.getRoomManager();
+        Room room = roomManager.getRoom(currentRoomId);
+        
+        if (room == null) return;
+
+        // 2. 역할 중복 체크 (선택 사항: 게임 규칙에 따라 구현)
+        int requestedRole = msg.getRoleType();
+        // 이미 다른 사람이 그 역할을 골랐는지 확인 (Room에 isRoleTaken 메서드가 있다고 가정)
+        if (room.isRoleTaken(requestedRole, playerId)) {
+             // 실패 시 에러 메시지 전송
+             sendResponse(ResponseMessage.error(ResponseMessage.ROLE_ALREADY_TAKEN, "이미 선택된 역할입니다."));
+             return;
+        }
+
+        // 3. 방 객체의 데이터 업데이트 (동기화됨)
+        room.setPlayerRole(playerId, requestedRole);
+        
+        System.out.println("플레이어 역할 변경: " + playerName + " -> " + requestedRole);
+
+        // 4. 변경된 정보를 방 안의 '모든' 클라이언트에게 전송
+        room.broadcastRoomInfo(RoomInfoMessage.ROLE_CHANGED);
+    }
+    
+    private void handlePlayerReady(RoomActionMessage msg) {
+        // 1. 현재 방 정보 가져오기
+        if (currentRoomId == null) return;
+        RoomManager roomManager = server.getRoomManager();
+        Room room = roomManager.getRoom(currentRoomId);
+        
+        if (room == null) return;
+
+        // 2. 해당 플레이어의 준비 상태 업데이트
+        room.setPlayerReady(playerId, msg.isReady());
+        System.out.println("플레이어 준비 상태 변경: " + playerName + " -> " + msg.isReady());
+
+        // 3. 방 안의 모든 사람에게 최신 상태 브로드캐스트
+        room.broadcastRoomInfo(RoomInfoMessage.READY_CHANGED);
+    }
+    
     private void handleGameInput(GameInputMessage msg) {
         System.out.println("게임 입력: " + msg.getInputType() + " from " + playerName);
         
@@ -390,6 +430,8 @@ public class ClientHandler extends Thread {
     public void sendPacket(Packet packet) {
         try {
             if (out != null) {
+            	out.reset();
+            	
                 out.writeObject(packet);
                 out.flush();
             }

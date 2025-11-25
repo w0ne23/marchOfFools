@@ -22,5 +22,7 @@ public class Assets {
         public static final Color BLUE = new Color(120, 170, 255); 
         public static final Color BLUE_HOVERED = new Color(130, 190, 255); 
         public static final Color BLUE_PRESSED = new Color(110, 150, 230); 
+        
+        public static final Color GREEN = new Color(46, 204, 113);
     }
 }

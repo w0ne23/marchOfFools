@@ -9,8 +9,11 @@ import java.net.SocketAddress;
 import java.util.UUID;
 
 import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 
 import marchoffools.client.Frame;
+import marchoffools.client.core.Scene;
+import marchoffools.client.scenes.LobbyScene;
 import marchoffools.common.protocol.MessageType;
 import marchoffools.common.protocol.Packet;
 import marchoffools.common.message.*;
@@ -186,13 +189,42 @@ public class NetworkManager {
     }
     
     private void handleRoomInfo(RoomInfoMessage msg) {
-        System.out.println("방 정보 수신: " + msg);
-        // TODO: Phase 2 - Scene에 전달
+    	System.out.println("=== RoomInfo 수신 ===");
+        System.out.println("Room ID: " + msg.getRoomId());
+        System.out.println("Status: " + msg.getStatus());
+        System.out.println("Players: " + msg.getPlayers().size());
+        System.out.println("Can Start: " + msg.isCanStart());
+        
+        // 현재 Scene 확인
+        Scene currentScene = frame.getCurrentScene();
+        
+        if (currentScene instanceof LobbyScene) {
+            // 이미 LobbyScene이면 업데이트만
+            System.out.println("LobbyScene 업데이트");
+            ((LobbyScene) currentScene).updateRoomInfo(msg);
+        } else {
+            // 다른 Scene이면 LobbyScene으로 전환
+            System.out.println("LobbyScene으로 전환");
+            SwingUtilities.invokeLater(() -> {
+                LobbyScene lobbyScene = new LobbyScene();
+                frame.switchScene(lobbyScene);
+                // Scene 전환 완료 후 데이터 설정
+                lobbyScene.updateRoomInfo(msg);
+            });
+        }
     }
     
     private void handleChat(ChatMessage msg) {
-        System.out.println("채팅 수신: " + msg.getSenderName() + ": " + msg.getContent());
-        // TODO: Phase 3 - 채팅창에 표시
+    	System.out.println("Chat 수신: " + msg.getSenderName() + ": " + msg.getContent());
+        
+        Scene currentScene = frame.getCurrentScene();
+        
+        // LobbyScene일 때만 채팅 표시
+        if (currentScene instanceof LobbyScene) {
+            ((LobbyScene) currentScene).receiveChat(msg);
+        } else {
+            System.out.println("Warning: Chat received but not in LobbyScene");
+        }
     }
     
     private void handleGameState(GameStateMessage msg) {
@@ -209,14 +241,24 @@ public class NetworkManager {
         String title = "오류";
         
         // 오류 코드별 제목 설정
-        if (code >= 420 && code < 430) {
-            title = "방 오류";
-        } else if (code >= 430 && code < 440) {
+        if (code >= ResponseMessage.CATEGORY_ROOM_ERROR_START && 
+                code < ResponseMessage.CATEGORY_ROOM_ERROR_END) {
+                title = "방 오류";
+                
+        } else if (code >= ResponseMessage.CATEGORY_GAME_ERROR_START && 
+                   code < ResponseMessage.CATEGORY_GAME_ERROR_END) {
             title = "게임 오류";
-        } else if (code >= 440 && code < 450) {
+                
+        } else if (code >= ResponseMessage.CATEGORY_ROLE_ERROR_START && 
+                   code < ResponseMessage.CATEGORY_ROLE_ERROR_END) {
             title = "역할 오류";
-        } else if (code >= 500) {
+                
+        } else if (code >= ResponseMessage.CATEGORY_SERVER_ERROR_START) {
             title = "서버 오류";
+                
+        } else if (code == ResponseMessage.NO_AVAILABLE_ROOM || 
+                   code == ResponseMessage.MATCHMAKING_TIMEOUT) {
+            title = "매칭 오류";
         }
         
         JOptionPane.showMessageDialog(

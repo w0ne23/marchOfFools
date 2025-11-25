@@ -12,10 +12,15 @@ public class ResponseMessage extends Message {
     public static final int BAD_REQUEST = 400;                // 잘못된 요청 (일반)
     
     // 연결 관련 오류
+    public static final int CATEGORY_CONNECTION_ERROR_START = 410;
+    
     public static final int ALREADY_CONNECTED = 411;          // 이미 연결됨
     public static final int INVALID_PLAYER_NAME = 412;        // 잘못된 플레이어 이름 형식
     
     // 방 관련 오류
+    public static final int CATEGORY_ROOM_ERROR_START = 420;
+    public static final int CATEGORY_ROOM_ERROR_END   = 430;
+    
     public static final int ROOM_NOT_FOUND = 420;  			  // 방을 찾을 수 없음
     public static final int ALREADY_IN_ROOM= 421; 			  // 방에 이미 들어옴
     public static final int NOT_IN_ROOM = 422;				  // 방에 있지 않음
@@ -23,17 +28,25 @@ public class ResponseMessage extends Message {
     // public static final int CANNOT_LEAVE_PLAYING = 424;    // [추후 필요 시 추가] 게임 중 나갈 수 없음
     
     // 게임 관련 오류
+    public static final int CATEGORY_GAME_ERROR_START = 430;
+    public static final int CATEGORY_GAME_ERROR_END   = 440;
+    
     public static final int GAME_ALREADY_STARTED = 430;       // 게임이 이미 시작됨
     public static final int NOT_ENOUGH_PLAYERS = 431;         // 플레이어 부족 (2명 필요)
     public static final int PLAYERS_NOT_READY = 432;          // 플레이어 준비 안 됨
     
     // 역할 관련 오류 
+    public static final int CATEGORY_ROLE_ERROR_START = 440;
+    public static final int CATEGORY_ROLE_ERROR_END   = 450;
+    
     public static final int ROLE_NOT_SELECTED = 440;          // 역할 미선택
     public static final int ROLE_ALREADY_TAKEN = 441;          // 두 플레이어가 같은 역할 (시작 불가)
     public static final int ROLE_INVALID_SELECTION = 442;     // 유효하지 않은 역할 선택 (없는 역할)
     public static final int ROLE_CONFIRMED_CHANGE_NOT_ALLOWED = 443; // 역할 확정 후 변경 불가
     
     // 입력/액션 관련 오류
+    public static final int CATEGORY_SERVER_ERROR_START = 500;
+    
     public static final int INVALID_INPUT = 450;              // 잘못된 입력
     public static final int ACTION_NOT_ALLOWED = 451;         // 허용되지 않는 액션
     
