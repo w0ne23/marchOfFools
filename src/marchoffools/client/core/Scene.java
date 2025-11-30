@@ -71,5 +71,7 @@ public abstract class Scene extends JPanel {
 	        g.drawImage(img, x, y, w, h, this);
 	    }
 	}
+	
+	public void onExit() {};
 
 }
