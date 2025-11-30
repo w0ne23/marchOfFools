@@ -123,8 +123,7 @@ public class ClientHandler extends Thread {
                 break;
                 
             case RoomActionMessage.START_GAME:  // TODO: Phase 4
-                System.out.println("게임 시작 요청: " + playerName);
-                sendResponse(ResponseMessage.success("게임 시작 기능은 Phase 4에서 구현됩니다"));
+            	handleStartGame(msg);
                 break;
                 
             default:
@@ -431,6 +430,63 @@ public class ClientHandler extends Thread {
 
         // 3. 방 안의 모든 사람에게 최신 상태 브로드캐스트
         room.broadcastRoomInfo(RoomInfoMessage.READY_CHANGED);
+    }
+    
+    private void handleStartGame(RoomActionMessage msg) {
+        System.out.println("게임 시작 요청: " + playerName);
+        
+        // 1. 방에 있는지 확인
+        if (currentRoomId == null) {
+            sendResponse(ResponseMessage.error(
+                ResponseMessage.NOT_IN_ROOM,
+                "방에 입장해 있지 않습니다"
+            ));
+            return;
+        }
+        
+        RoomManager roomManager = server.getRoomManager();
+        Room room = roomManager.getRoom(currentRoomId);
+        
+        if (room == null) {
+            sendResponse(ResponseMessage.error(
+                ResponseMessage.ROOM_NOT_FOUND,
+                "방을 찾을 수 없습니다"
+            ));
+            return;
+        }
+        
+        // 2. 방장인지 확인
+        if (!playerId.equals(room.getHostId())) {
+            System.out.println("✗ 방장이 아님: " + playerName);
+            sendResponse(ResponseMessage.error(
+                ResponseMessage.NOT_HOST,
+                "방장만 게임을 시작할 수 있습니다"
+            ));
+            return;
+        }
+        
+        // 3. 게임 시작 가능 여부 확인
+        if (!room.canStartGame()) {
+            System.out.println("✗ 게임 시작 불가");
+            System.out.println("  - 플레이어 수: " + room.getPlayerCount());
+            
+            sendResponse(ResponseMessage.error(
+                ResponseMessage.PLAYERS_NOT_READY,
+                "모든 플레이어가 준비되지 않았습니다"
+            ));
+            return;
+        }
+        
+        // 게임 시작
+        System.out.println("게임 시작 조건 충족");
+        
+        // 4. 방 상태를 PLAYING으로 변경
+        room.startGame();  // playing = true, status = "PLAYING"
+        System.out.println("✓ 방 상태 변경: WAITING → PLAYING");
+        
+        // 5. 변경된 RoomInfo를 모든 플레이어에게 브로드캐스트
+        room.broadcastRoomInfo(RoomInfoMessage.GAME_STARTING);
+        System.out.println("✓ 모든 플레이어에게 게임 시작 신호 전송 완료");
     }
     
     private void handleGameInput(GameInputMessage msg) {

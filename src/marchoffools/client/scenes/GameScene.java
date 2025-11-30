@@ -28,12 +28,17 @@ import marchoffools.client.core.Skill;
 public class GameScene extends Scene {
 
     private static final long serialVersionUID = 1L;
+    
+    private String myName;
+    private String opponentName;
+    private int myRole;           
+    private int opponentRole;
 
     private JLabel lScore;
     private JLabel lTimer;
     private GameCanvas gameCanvas;
     
-    private int score = 932582;
+    private int score = 0;
     private javax.swing.Timer gameTimer;
     private int remainingTime = 180;
     
@@ -41,9 +46,19 @@ public class GameScene extends Scene {
     private Button currentEmojiButton = null;
     
     private MouseAdapter sceneMouseListener;
+    
+//    // 기존 생성자 (테스트용)
+//    public GameScene() {
+//        this("Player1", "Player2", ROLE_KNIGHT, ROLE_HORSE, null, null);
+//    }
 
-    public GameScene() {
+    public GameScene(String myName, String opponentName, int myRole, int opponentRole) {
         super(DEFAULT);
+        
+        this.myName = myName;
+        this.opponentName = opponentName;
+        this.myRole = myRole;
+        this.opponentRole = opponentRole;
         
         sceneMouseListener = new MouseAdapter() {
             @Override
@@ -140,12 +155,12 @@ public class GameScene extends Scene {
         int startY = (WINDOW_HEIGHT - totalHeight) / 2;
         
         // Player 1의 감정 표현 버튼
-        Button bPlayer1Emoji = createEmojiButton("Player 1");
+        Button bPlayer1Emoji = createEmojiButton(myName);
         bPlayer1Emoji.setBounds(20, startY, buttonSize, buttonSize);
         add(bPlayer1Emoji);
         
         // Player 2의 감정 표현 버튼
-        Button bPlayer2Emoji = createEmojiButton("Player 2");
+        Button bPlayer2Emoji = createEmojiButton(opponentName);
         bPlayer2Emoji.setBounds(20, startY + buttonSize + gap, buttonSize, buttonSize);
         add(bPlayer2Emoji);
     }

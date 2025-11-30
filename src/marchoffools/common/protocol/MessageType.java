@@ -7,6 +7,7 @@ public enum MessageType {
     
     // 서버 → 클라이언트
     ROOM_INFO,        // 방 정보/상태 업데이트
+    GAME_START,		  // 게임 시작
     GAME_STATE,       // 게임 상태 동기화
     GAME_RESULT,      // 게임 결과
     RESPONSE,         // 응답/에러

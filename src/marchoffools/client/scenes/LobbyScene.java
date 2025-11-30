@@ -743,4 +743,44 @@ public class LobbyScene extends Scene {
         g.setColor(LIGHT_GRAY);
         g.drawLine(72, 110, WINDOW_WIDTH - 72, 110);
     }
+    
+    // 서버로부터 게임 시작 메시지를 받았을 때
+    public void onGameStart() {
+        SwingUtilities.invokeLater(() -> {
+            System.out.println("Game starting! Switching to GameScene...");
+            
+            NetworkManager nm = getNetworkManager();
+            if (nm == null || players == null || players.size() != 2) {
+                System.err.println("Cannot start game: invalid state");
+                return;
+            }
+            
+            String myId = nm.getPlayerId();
+            PlayerInfo me = null;
+            PlayerInfo opponent = null;
+            
+            // 나와 상대방 정보 찾기
+            for (PlayerInfo p : players) {
+                if (p.getPlayerId().equals(myId)) {
+                    me = p;
+                } else {
+                    opponent = p;
+                }
+            }
+            
+            if (me == null || opponent == null) {
+                System.err.println("Cannot find player info");
+                return;
+            }
+            
+            GameScene gameScene = new GameScene(
+                me.getPlayerName(),
+                opponent.getPlayerName(),
+                me.getRole(),
+                opponent.getRole()
+            );
+            
+            switchTo(gameScene);
+        });
+    }
 }

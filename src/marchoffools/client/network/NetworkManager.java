@@ -16,6 +16,7 @@ import marchoffools.client.core.Scene;
 import marchoffools.client.scenes.LobbyScene;
 import marchoffools.common.protocol.MessageType;
 import marchoffools.common.protocol.Packet;
+import marchoffools.server.game.Room;
 import marchoffools.common.message.*;
 
 public class NetworkManager {
@@ -195,7 +196,13 @@ public class NetworkManager {
         System.out.println("Players: " + msg.getPlayers().size());
         System.out.println("Can Start: " + msg.isCanStart());
         
-     // 현재 Scene 확인
+        // 게임 시작 상태 체크
+        if (msg.getStatus() == Room.STATUS_PLAYING) {
+            handleGameStartFromRoomInfo(msg);
+            return;
+        }
+        
+        // 현재 Scene 확인
         Scene currentScene = frame.getCurrentScene();
         
         if (currentScene instanceof LobbyScene) {
@@ -212,6 +219,19 @@ public class NetworkManager {
                 lobbyScene.updateRoomInfo(msg);
             });
         }
+    }
+    
+    private void handleGameStartFromRoomInfo(RoomInfoMessage msg) {
+        System.out.println("=== Game Starting (from RoomInfo) ===");
+        
+        SwingUtilities.invokeLater(() -> {
+            Scene currentScene = frame.getCurrentScene();
+            if (currentScene instanceof LobbyScene) {
+                ((LobbyScene) currentScene).onGameStart();
+            } else {
+                System.err.println("Warning: Game start signal received but not in LobbyScene");
+            }
+        });
     }
     
     private void handleChat(ChatMessage msg) {
