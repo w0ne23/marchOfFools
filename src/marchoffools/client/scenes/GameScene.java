@@ -3,6 +3,7 @@ package marchoffools.client.scenes;
 import static marchoffools.client.core.Assets.Backgrounds.DEFAULT;
 import static marchoffools.client.core.Assets.Colors.*;
 import static marchoffools.client.core.Config.*;
+import static marchoffools.common.message.RoomActionMessage.*;
 
 import java.awt.Dimension;
 import java.awt.Font;
@@ -20,12 +21,17 @@ import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
-
+import marchoffools.client.network.NetworkManager;
+import marchoffools.client.network.NetworkListener;
 import marchoffools.client.ui.Button;
 import marchoffools.client.core.Scene;
 import marchoffools.client.core.Skill;
+import marchoffools.common.message.GameInputMessage;
+import marchoffools.common.message.GameResultMessage;
+import marchoffools.common.message.GameStateMessage;
+import marchoffools.common.protocol.MessageType;
 
-public class GameScene extends Scene {
+public class GameScene extends Scene implements NetworkListener {
 
     private static final long serialVersionUID = 1L;
     
@@ -47,10 +53,8 @@ public class GameScene extends Scene {
     
     private MouseAdapter sceneMouseListener;
     
-//    // 기존 생성자 (테스트용)
-//    public GameScene() {
-//        this("Player1", "Player2", ROLE_KNIGHT, ROLE_HORSE, null, null);
-//    }
+    private Button myEmojiButton;
+    private Button opponentEmojiButton;
 
     public GameScene(String myName, String opponentName, int myRole, int opponentRole) {
         super(DEFAULT);
@@ -76,18 +80,21 @@ public class GameScene extends Scene {
         createEmotionSection();
         createGameCanvas();
         createSkillUseSection();
+        
+        System.out.println("GameScene initialized:");
+        System.out.println("  My Name: " + myName + " [" + getRoleName(myRole) + "]");
+        System.out.println("  Opponent: " + opponentName + " [" + getRoleName(opponentRole) + "]");
     }
     
-    private void createExitButton() {
-        Button bExit = new Button("->");
-        bExit.setFont(getFont().deriveFont(Font.BOLD, 30f));
-        bExit.setSize(100, 50); 
-        bExit.setLocation(WINDOW_WIDTH - bExit.getWidth() - 72, 40);
-        bExit.addActionListener(e -> {
-            goBack();
-        });
-        add(bExit);
+    @Override
+    public void onExit() {
+        stopGameTimer();
+        super.onExit();
     }
+    
+    // ==========================================
+    //        UI 컴포넌트 생성
+    // ==========================================
     
     private void createScoreTimeSection() {
     	JPanel topPanel = new JPanel();
@@ -112,65 +119,64 @@ public class GameScene extends Scene {
         startGameTimer();
     }
     
-    private String formatTime(int seconds) {
-        int minutes = seconds / 60;
-        int secs = seconds % 60;
-        return String.format("%d:%02d", minutes, secs);
+    private void createGameCanvas() {
+        gameCanvas = new GameCanvas();
+        gameCanvas.setBounds(0, 120, WINDOW_WIDTH, WINDOW_HEIGHT - 120);
+//        gameCanvas.setBackground(Color.WHITE);
+//        gameCanvas.setOpaque(true);
+        add(gameCanvas, Integer.valueOf(javax.swing.JLayeredPane.DEFAULT_LAYER));
     }
     
-    private void startGameTimer() {
-        gameTimer = new javax.swing.Timer(1000, e -> {
-            if (remainingTime > 0) {
-                remainingTime--;
-                updateTimer(remainingTime);
-            } else {
-                gameTimer.stop();
-                onTimeUp();
-            }
+    private void createExitButton() {
+        Button bExit = new Button("->");
+        bExit.setFont(getFont().deriveFont(Font.BOLD, 30f));
+        bExit.setSize(100, 50); 
+        bExit.setLocation(WINDOW_WIDTH - bExit.getWidth() - 72, 40);
+        bExit.addActionListener(e -> {
+            goBack();
         });
-        gameTimer.start();
-    }
-    
-    private void onTimeUp() {
-        System.out.println("Time's up!");
-        // TODO: 게임 종료 처리(결과 화면 띄우기, 점수 저장, 대기실?로 돌아가기)
-    }
-    
-    public void stopGameTimer() {
-        if (gameTimer != null && gameTimer.isRunning()) {
-            gameTimer.stop();
-        }
-    }
-    
-    public void updateTimer(int seconds) {
-        this.remainingTime = seconds;
-        lTimer.setText("⏱ " + formatTime(remainingTime));
+        add(bExit);
     }
     
     private void createEmotionSection() {
-    	int buttonSize = 70;
+        int buttonSize = 70;
         int gap = 40;
         
-        int totalHeight = buttonSize * 2 + gap;
+        int sectionHeight = buttonSize + 20;  // 버튼 + 라벨
+        int totalHeight = sectionHeight * 2 + gap;
         int startY = (WINDOW_HEIGHT - totalHeight) / 2;
         
-        // Player 1의 감정 표현 버튼
-        Button bPlayer1Emoji = createEmojiButton(myName);
-        bPlayer1Emoji.setBounds(20, startY, buttonSize, buttonSize);
-        add(bPlayer1Emoji);
+        // 내 감정 표현 섹션 (클릭 가능)
+        createPlayerEmojiSection(myName, true, 20, startY);
         
-        // Player 2의 감정 표현 버튼
-        Button bPlayer2Emoji = createEmojiButton(opponentName);
-        bPlayer2Emoji.setBounds(20, startY + buttonSize + gap, buttonSize, buttonSize);
-        add(bPlayer2Emoji);
+        // 상대방 감정 표현 섹션 (클릭 불가)
+        createPlayerEmojiSection(opponentName, false, 20, startY + sectionHeight + gap);
     }
     
-    public void updateScore(int newScore) {
-        this.score = newScore;
-        lScore.setText(String.format("%,d", score));
+    private void createPlayerEmojiSection(String playerName, boolean isMyButton, int x, int y) {
+        int buttonSize = 70;
+        
+        // 이모지 버튼
+        Button emojiButton = createEmojiButton(playerName, isMyButton);
+        emojiButton.setBounds(x, y, buttonSize, buttonSize);
+        add(emojiButton);
+        
+        // 참조 저장
+        if (isMyButton) {
+            myEmojiButton = emojiButton;
+        } else {
+            opponentEmojiButton = emojiButton;
+        }
+        
+        // 플레이어 이름 라벨
+        JLabel nameLabel = new JLabel(playerName, SwingConstants.CENTER);
+        nameLabel.setFont(getFont().deriveFont(12f));
+        nameLabel.setForeground(BLACK);
+        nameLabel.setBounds(x, y + buttonSize + 2, buttonSize, 20);
+        add(nameLabel);
     }
-
-    private Button createEmojiButton(String playerName) {
+    
+    private Button createEmojiButton(String playerName, boolean clickable) {
         // 초기 이모지 설정
         Button button = new Button("😐");
         button.setFont(getFont().deriveFont(40f));
@@ -178,92 +184,25 @@ public class GameScene extends Scene {
         button.setMinimumSize(new Dimension(70, 70));
         button.setMaximumSize(new Dimension(70, 70));
         
-        button.setButtonColors(WHITE, WHITE.brighter(), LIGHT_GRAY);
-        button.setBorder(BorderFactory.createLineBorder(GRAY, 2));
-        
-        button.addActionListener(e -> {
-        	if (currentEmojiButton == button && currentEmojiSelector != null) {
-                closeEmojiSelector();
-            } else {
-                // 다른 버튼을 누른 경우 → 팝업 전환
-                showEmojiSelector(button);
-            }
-        });
+        if (clickable) {
+            button.setButtonColors(WHITE, WHITE.brighter(), LIGHT_GRAY);
+            button.setBorder(BorderFactory.createLineBorder(GRAY, 2));
+            
+            button.addActionListener(e -> {
+                if (currentEmojiButton == button && currentEmojiSelector != null) {
+                    closeEmojiSelector();
+                } else {
+                    showEmojiSelector(button);
+                }
+            });
+        } else {
+        	button.setButtonColors(LIGHT_GRAY, LIGHT_GRAY, LIGHT_GRAY);
+            button.setBorder(BorderFactory.createLineBorder(GRAY, 1));
+            button.setEnabled(true);  // 버튼은 활성화 상태 유지
+            button.setFocusable(false);  // 포커스 불가
+        }
         
         return button;
-    }
-
-    private void showEmojiSelector(Button targetButton) {
-    	
-        String[] availableEmojis = {"😊", "😡", "😭", "😴", "😱"};
-        
-        // 팝업 패널
-        JPanel emojiSelectorPanel = new JPanel();
-        emojiSelectorPanel.setLayout(new BoxLayout(emojiSelectorPanel, BoxLayout.Y_AXIS));
-        emojiSelectorPanel.setBackground(WHITE);
-        emojiSelectorPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(LIGHT_GRAY, 1),
-            BorderFactory.createEmptyBorder(5, 5, 5, 5)
-        ));
-        
-        for (String emoji : availableEmojis) {
-            Button emojiOption = new Button(emoji);
-            emojiOption.setFont(getFont().deriveFont(32f));
-            emojiOption.setPreferredSize(new Dimension(60, 60));
-            emojiOption.setMinimumSize(new Dimension(60, 60));
-            emojiOption.setMaximumSize(new Dimension(60, 60));
-            emojiOption.setAlignmentX(CENTER_ALIGNMENT);
-            
-            emojiOption.setButtonColors(WHITE, LIGHT_GRAY, GRAY);
-            emojiOption.setBorder(BorderFactory.createLineBorder(LIGHT_GRAY, 1));
-            
-            emojiOption.addActionListener(e -> {
-                // 선택한 이모지로 버튼 업데이트 -> 서버에 이모지 선택 전송
-                targetButton.setText(emoji);
-                System.out.println("Selected emoji: " + emoji);
-                
-                closeEmojiSelector();
-            });
-            
-            emojiSelectorPanel.add(emojiOption);
-            emojiSelectorPanel.add(Box.createVerticalStrut(5));
-        }
-        
-        int popupX = targetButton.getParent().getX() + targetButton.getX() + targetButton.getWidth() + 10;
-        int popupY = targetButton.getParent().getY() + targetButton.getY();
-        int popupWidth = 70;
-        int popupHeight = availableEmojis.length * 65 + 10;
-        
-        emojiSelectorPanel.setBounds(popupX, popupY, popupWidth, popupHeight);
-        
-        // 기존 팝업이 있으면 제거
-        closeEmojiSelector();
-        
-        currentEmojiSelector = emojiSelectorPanel;
-        currentEmojiButton = targetButton;
-        
-        // 최상위 레이어에 팝업 추가
-        add(emojiSelectorPanel, Integer.valueOf(100)); 
-        revalidate();
-        repaint();
-    }
-    
-    private void closeEmojiSelector() {
-        if (currentEmojiSelector != null) {
-            remove(currentEmojiSelector);
-            currentEmojiSelector = null;
-            currentEmojiButton = null;
-            revalidate();
-            repaint();
-        }
-    }
-    
-    private void createGameCanvas() {
-        gameCanvas = new GameCanvas();
-        gameCanvas.setBounds(0, 120, WINDOW_WIDTH, WINDOW_HEIGHT - 120);
-//        gameCanvas.setBackground(Color.WHITE);
-//        gameCanvas.setOpaque(true);
-        add(gameCanvas);
     }
     
     private void createSkillUseSection() {
@@ -304,6 +243,50 @@ public class GameScene extends Scene {
         return button;
     }
     
+    // ==========================================
+    //        게임 로직
+    // ==========================================
+    
+    private void startGameTimer() {
+        gameTimer = new javax.swing.Timer(1000, e -> {
+            if (remainingTime > 0) {
+                remainingTime--;
+                updateTimer(remainingTime);
+            } else {
+                gameTimer.stop();
+                onTimeUp();
+            }
+        });
+        gameTimer.start();
+    }
+    
+    public void stopGameTimer() {
+        if (gameTimer != null && gameTimer.isRunning()) {
+            gameTimer.stop();
+        }
+    }
+    
+    private void onTimeUp() {
+        System.out.println("Time's up!");
+        // TODO: 게임 종료 처리(결과 화면 띄우기, 점수 저장, 대기실?로 돌아가기)
+    }
+    
+    public void updateTimer(int seconds) {
+        this.remainingTime = seconds;
+        lTimer.setText("⏱ " + formatTime(remainingTime));
+    }
+    
+    private String formatTime(int seconds) {
+        int minutes = seconds / 60;
+        int secs = seconds % 60;
+        return String.format("%d:%02d", minutes, secs);
+    }
+    
+    public void updateScore(int newScore) {
+        this.score = newScore;
+        lScore.setText(String.format("%,d", score));
+    }
+    
     private void useSkill(Skill skill) {
         switch (skill) {
             case SHIELD:
@@ -317,6 +300,151 @@ public class GameScene extends Scene {
                 break;
         }
     }
+    
+    private String getRoleName(int role) {
+        switch (role) {
+            case ROLE_KNIGHT: return "Knight";
+            case ROLE_HORSE: return "Horse";
+            default: return "None";
+        }
+    }
+    
+    // ==========================================
+    //        이모지 감정 표현 로직
+    // ==========================================
+    
+    private void showEmojiSelector(Button targetButton) {
+    	
+        String[] availableEmojis = {"😊", "😡", "😭", "😴", "😱"};
+        
+        // 팝업 패널
+        JPanel emojiSelectorPanel = new JPanel();
+        emojiSelectorPanel.setLayout(new BoxLayout(emojiSelectorPanel, BoxLayout.Y_AXIS));
+        emojiSelectorPanel.setBackground(WHITE);
+        emojiSelectorPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(LIGHT_GRAY, 1),
+            BorderFactory.createEmptyBorder(5, 5, 5, 5)
+        ));
+        
+        for (String emoji : availableEmojis) {
+            Button emojiOption = new Button(emoji);
+            emojiOption.setFont(getFont().deriveFont(32f));
+            emojiOption.setPreferredSize(new Dimension(60, 60));
+            emojiOption.setMinimumSize(new Dimension(60, 60));
+            emojiOption.setMaximumSize(new Dimension(60, 60));
+            emojiOption.setAlignmentX(CENTER_ALIGNMENT);
+            
+            emojiOption.setButtonColors(WHITE, LIGHT_GRAY, GRAY);
+            emojiOption.setBorder(BorderFactory.createLineBorder(LIGHT_GRAY, 1));
+            
+            emojiOption.addActionListener(e -> {
+            	NetworkManager nm = getNetworkManager();
+                if (nm != null) {
+                    int emotionType = emojiToEmotionType(emoji);
+                    GameInputMessage msg = new GameInputMessage(
+                        nm.getPlayerId(), 
+                        GameInputMessage.EMOTION, 
+                        emotionType
+                    );
+                    nm.sendMessage(MessageType.GAME_INPUT, msg);
+                    System.out.println("Emotion sent to server: " + emoji + " (type=" + emotionType + ")");
+                }
+                
+                closeEmojiSelector();
+            });
+            
+            emojiSelectorPanel.add(emojiOption, Integer.valueOf(javax.swing.JLayeredPane.POPUP_LAYER));
+            emojiSelectorPanel.add(Box.createVerticalStrut(5));
+        }
+        
+        int popupX = targetButton.getParent().getX() + targetButton.getX() + targetButton.getWidth() + 10;
+        int popupY = targetButton.getParent().getY() + targetButton.getY();
+        int popupWidth = 70;
+        int popupHeight = availableEmojis.length * 65 + 10;
+        
+        emojiSelectorPanel.setBounds(popupX, popupY, popupWidth, popupHeight);
+        
+        // 기존 팝업이 있으면 제거
+        closeEmojiSelector();
+        
+        currentEmojiSelector = emojiSelectorPanel;
+        currentEmojiButton = targetButton;
+        
+        // 최상위 레이어에 팝업 추가
+        add(emojiSelectorPanel, Integer.valueOf(100)); 
+        revalidate();
+        repaint();
+    }
+    
+    private void closeEmojiSelector() {
+        if (currentEmojiSelector != null) {
+            remove(currentEmojiSelector);
+            currentEmojiSelector = null;
+            currentEmojiButton = null;
+            revalidate();
+            repaint();
+        }
+    }
+    
+    public void updateEmotion(String playerId, int emotionType) {
+        NetworkManager nm = getNetworkManager();
+        if (nm == null) return;
+        
+        String emoji = emotionTypeToEmoji(emotionType);
+        
+        if (playerId.equals(nm.getPlayerId())) {
+            if (myEmojiButton != null) {
+                myEmojiButton.setText(emoji);
+            }
+        } else {
+            if (opponentEmojiButton != null) {
+                opponentEmojiButton.setText(emoji);
+            }
+        }
+        
+        System.out.println("Emotion updated: " + playerId + " -> " + emoji);
+    }
+    
+    private int emojiToEmotionType(String emoji) {
+        switch (emoji) {
+            case "😊": return GameInputMessage.EMOTION_HAPPY;
+            case "😡": return GameInputMessage.EMOTION_ANGRY;
+            case "😭": return GameInputMessage.EMOTION_SAD;
+            case "😴": return GameInputMessage.EMOTION_SLEEP;
+            case "😱": return GameInputMessage.EMOTION_SURPRISED;
+            default: return GameInputMessage.EMOTION_HAPPY;
+        }
+    }
+    
+    private String emotionTypeToEmoji(int emotionType) {
+        switch (emotionType) {
+            case GameInputMessage.EMOTION_HAPPY: return "😊";
+            case GameInputMessage.EMOTION_ANGRY: return "😡";
+            case GameInputMessage.EMOTION_SAD: return "😭";
+            case GameInputMessage.EMOTION_SLEEP: return "😴";
+            case GameInputMessage.EMOTION_SURPRISED: return "😱";
+            default: return "😐";
+        }
+    }
+    
+    
+    
+    
+    
+    
+   
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     @Override
     public void paintComponent(Graphics g) {
@@ -394,7 +522,7 @@ public class GameScene extends Scene {
         
         private void loadImage() {
             try {
-                image = new ImageIcon("assets/testCharacter.png").getImage();
+                image = new ImageIcon(getClass().getResource("/assets/testCharacter.png")).getImage();
                 
                 // 이미지 크기에 맞게 width, height 조정
                  width = image.getWidth(null);
@@ -433,7 +561,7 @@ public class GameScene extends Scene {
         
         private void loadImage() {
             try {
-                image = new ImageIcon("assets/testObstacle.png").getImage();
+                image = new ImageIcon(getClass().getResource("/assets/testObstacle.png")).getImage();
                 
                 // 이미지 크기에 맞게 width, height 조정 
                 width = image.getWidth(null);
@@ -451,6 +579,11 @@ public class GameScene extends Scene {
                 g.setColor(GRAY);
                 g.fillRect(x, y, width, height);
             }
+        }
+        
+        public void move(int dx, int dy) {
+            this.x += dx;
+            this.y += dy;
         }
         
         public int getX() { return x; }
@@ -474,7 +607,7 @@ public class GameScene extends Scene {
         
         private void loadImage() {
             try {
-                image = new ImageIcon("assets/testEnemy2.png").getImage();
+                image = new ImageIcon(getClass().getResource("/assets/testEnemy2.png")).getImage();
                 
                 // 이미지 크기에 맞게 width, height 조정 
                  width = image.getWidth(null);
@@ -508,9 +641,50 @@ public class GameScene extends Scene {
         public String getType() { return type; }
     }
     
+    
+    
+    // ==========================================
+    //        NetworkListener 구현
+    // ==========================================
+    
     @Override
-    public void onExit() {
+    public void onGameInput(GameInputMessage msg) {
+        System.out.println("GameScene received GameInput: type=" + msg.getInputType());
+        
+        switch (msg.getInputType()) {
+            case GameInputMessage.EMOTION:
+                // 감정 표현 업데이트
+                updateEmotion(msg.getPlayerId(), msg.getValue());
+                break;
+                
+            case GameInputMessage.JUMP:
+            case GameInputMessage.SLIDE:
+            case GameInputMessage.ATTACK:
+                // TODO: 게임 액션 처리
+                System.out.println("Game action received: " + msg.getInputType());
+                break;
+                
+            case GameInputMessage.USE_ITEM:
+                // TODO: 아이템 사용 처리
+                System.out.println("Item use received: " + msg.getValue());
+                break;
+        }
+    }
+    
+    @Override
+    public void onGameState(GameStateMessage msg) {
+        System.out.println("GameScene received GameState");
+        
+        // TODO: 서버에서 보낸 게임 상태 업데이트
+        // 예: 타이머, 점수, 플레이어 위치 등
+    }
+    
+    @Override
+    public void onGameResult(GameResultMessage msg) {
+        System.out.println("GameScene received GameResult: score=" + msg.getTotalScore());
+        
         stopGameTimer();
-        super.onExit();
+        
+        // TODO: 결과 화면으로 전환
     }
 }

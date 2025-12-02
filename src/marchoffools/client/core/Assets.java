@@ -5,7 +5,7 @@ import java.awt.Color;
 public class Assets {
 
     public static class Backgrounds {
-        public static final String DEFAULT  = "assets/testTitle.png";
+        public static final String DEFAULT  = "src/assets/testTitle.png";
     }
 
     public static class Colors {

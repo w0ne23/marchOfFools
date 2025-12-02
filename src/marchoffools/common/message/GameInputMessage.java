@@ -15,11 +15,10 @@ public class GameInputMessage extends Message {
     
     // 감정 타입 상수
     public static final int EMOTION_HAPPY = 0;
-    public static final int EMOTION_SAD = 1;
-    public static final int EMOTION_ANGRY = 2;
-    public static final int EMOTION_SURPRISED = 3;
-    public static final int EMOTION_THUMBS_UP = 4;
-    public static final int EMOTION_THUMBS_DOWN = 5;
+    public static final int EMOTION_ANGRY = 1;
+    public static final int EMOTION_SAD = 2;
+    public static final int EMOTION_SLEEP = 3;
+    public static final int EMOTION_SURPRISED = 4;
     
     // 아이템 타입 상수
     public static final int ITEM_SPEED_BOOST = 0;

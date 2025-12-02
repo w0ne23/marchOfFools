@@ -490,9 +490,55 @@ public class ClientHandler extends Thread {
     }
     
     private void handleGameInput(GameInputMessage msg) {
-        System.out.println("게임 입력: " + msg.getInputType() + " from " + playerName);
+        int inputType = msg.getInputType();
+        System.out.println("게임 입력 수신: type=" + inputType + ", value=" + msg.getValue() + " from " + playerName);
         
-        // TODO: Phase 4에서 게임 세션에 전달
+        // 방에 있는지 확인
+        if (currentRoomId == null) {
+            System.out.println("Warning: GameInput received but player not in room");
+            return;
+        }
+        
+        RoomManager roomManager = server.getRoomManager();
+        Room room = roomManager.getRoom(currentRoomId);
+        
+        if (room == null) {
+            System.out.println("Warning: Room not found for game input broadcast");
+            return;
+        }
+        
+        // 입력 타입별 처리
+        switch (inputType) {
+            case GameInputMessage.EMOTION:
+                // 감정 표현은 항상 브로드캐스트
+                System.out.println("감정 표현: " + playerName + " -> " + msg.getValue());
+                Packet emotionPacket = new Packet(MessageType.GAME_INPUT, msg);
+                room.broadcastPacket(emotionPacket);
+                System.out.println("✓ 감정 표현 브로드캐스트 완료");
+                break;
+                
+            case GameInputMessage.JUMP:
+            case GameInputMessage.SLIDE:
+            case GameInputMessage.ATTACK:
+                // 게임 중일 때만 처리
+                if (!room.isPlaying()) {
+                    System.out.println("Warning: Game input sent but game not started");
+                    return;
+                }
+                
+                // TODO: 게임 로직 처리 후 브로드캐스트
+                Packet gamePacket = new Packet(MessageType.GAME_INPUT, msg);
+                room.broadcastPacket(gamePacket);
+                break;
+                
+            case GameInputMessage.USE_ITEM:
+                // TODO: 아이템 사용 처리
+                System.out.println("아이템 사용 요청: " + playerName);
+                break;
+                
+            default:
+                System.out.println("Unknown game input type: " + inputType);
+        }
     }
     
     public void sendPacket(Packet packet) {

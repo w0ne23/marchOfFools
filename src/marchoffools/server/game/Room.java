@@ -9,6 +9,10 @@ import marchoffools.common.protocol.Packet;
 import marchoffools.server.network.ClientHandler;
 
 public class Room {
+	
+	public static final int STATUS_WAITING = 0;
+    public static final int STATUS_PLAYING = 1;
+    public static final int STATUS_FINISHED = 2;
     
     private String roomId;
     private String hostId;
@@ -16,6 +20,7 @@ public class Room {
     private Map<String, ClientHandler> handlers;  // playerId -> ClientHandler
     private boolean playing;
     private boolean full;
+    private int status;
     
     private static final int MAX_PLAYERS = 2;
     
@@ -26,6 +31,7 @@ public class Room {
         this.handlers = new HashMap<>();
         this.playing = false;
         this.full = false;
+        this.status = STATUS_WAITING;
     }
     
     // 플레이어 추가
@@ -157,6 +163,7 @@ public class Room {
         msg.setHostId(hostId);
         msg.setPlayers(new ArrayList<>(players.values()));
         msg.setCanStart(canStartGame());
+        msg.setStatus(this.status);
         
         Packet packet = new Packet(MessageType.ROOM_INFO, msg);
         
@@ -173,7 +180,7 @@ public class Room {
     }
     
     // 게임 시작 가능 여부
-    private boolean canStartGame() {
+    public boolean canStartGame() {
         return players.size() == MAX_PLAYERS && 
                allPlayersHaveRole() && 
                !hasSameRoles() && 
@@ -183,10 +190,19 @@ public class Room {
     // 게임 시작
     public void startGame() {
         this.playing = true;
+        this.status = STATUS_PLAYING;
         System.out.println("방 " + roomId + " 게임 시작!");
     }
     
-    // Getters
+    // Getters and Setters
+    public int getStatus() {
+        return status;
+    }
+    
+    public void setStatus(int status) {
+        this.status = status;
+    }
+    
     public String getRoomId() {
         return roomId;
     }

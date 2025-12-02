@@ -6,6 +6,7 @@ import java.awt.Image;
 import javax.swing.JPanel;
 
 import marchoffools.client.network.NetworkManager;
+import marchoffools.client.network.NetworkListener;
 
 import javax.swing.ImageIcon;
 
@@ -32,6 +33,13 @@ public abstract class Scene extends JPanel {
 	public void setContext(SceneContext sceneContext, NetworkContext networkContext) {
 		this.sceneContext = sceneContext;
 		this.networkContext = networkContext;
+		
+		if (this instanceof NetworkListener && networkContext != null) {
+		    NetworkManager nm = networkContext.getNetworkManager();
+		    if (nm != null) {
+		        nm.setListener((NetworkListener) this);
+		    }
+		}
 	}
 	
     protected void switchTo(Scene newScene) {
@@ -72,6 +80,12 @@ public abstract class Scene extends JPanel {
 	    }
 	}
 	
-	public void onExit() {};
-
+	public void onExit() {
+		if (this instanceof NetworkListener && networkContext != null) {
+	        NetworkManager nm = networkContext.getNetworkManager();
+	        if (nm != null) {
+	            nm.setListener(null);
+	        }
+	    }
+	}
 }

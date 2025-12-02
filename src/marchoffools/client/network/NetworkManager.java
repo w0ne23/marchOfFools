@@ -25,6 +25,7 @@ public class NetworkManager {
     private ObjectOutputStream out;
     private ObjectInputStream in;
     private NetworkThread networkThread;
+    private NetworkListener listener;
     private Frame frame;
     
     private String playerId;
@@ -43,7 +44,7 @@ public class NetworkManager {
             socket = new Socket();
             SocketAddress sa = new InetSocketAddress(host, port);
             
-            System.out.println("===== 연결 시도 시작 =====");  // ✅ 추가
+            System.out.println("===== 연결 시도 시작 ====="); 
             System.out.println("서버 주소: " + host);
             System.out.println("포트: " + port);
             System.out.println("플레이어 이름: " + playerName);
@@ -165,6 +166,10 @@ public class NetworkManager {
                 handleChat((ChatMessage) packet.getData());
                 break;
                 
+            case GAME_INPUT:
+                handleGameInput((GameInputMessage) packet.getData());
+                break;
+                
             case GAME_STATE:
                 handleGameState((GameStateMessage) packet.getData());
                 break;
@@ -247,14 +252,34 @@ public class NetworkManager {
         }
     }
     
+    private void handleGameInput(GameInputMessage msg) {
+        System.out.println("GameInput 수신: type=" + msg.getInputType());
+        
+        if (listener != null) {
+            SwingUtilities.invokeLater(() -> listener.onGameInput(msg));
+        } else {
+            System.out.println("Warning: No NetworkListener set for GameInput");
+        }
+    }
+    
     private void handleGameState(GameStateMessage msg) {
-        System.out.println("게임 상태 수신: 거리=" + msg.getDistance());
-        // TODO: Phase 4 - 게임 화면 업데이트
+        System.out.println("GameState 수신: distance=" + msg.getDistance());
+        
+        if (listener != null) {
+            SwingUtilities.invokeLater(() -> listener.onGameState(msg));
+        } else {
+            System.out.println("Warning: No NetworkListener set for GameState");
+        }
     }
     
     private void handleGameResult(GameResultMessage msg) {
-        System.out.println("게임 결과 수신: 점수=" + msg.getTotalScore());
-        // TODO: Phase 4 - 결과 화면 표시
+        System.out.println("GameResult 수신: score=" + msg.getTotalScore());
+        
+        if (listener != null) {
+            SwingUtilities.invokeLater(() -> listener.onGameResult(msg));
+        } else {
+            System.out.println("Warning: No NetworkListener set for GameResult");
+        }
     }
     
     private void showError(int code, String message) {
@@ -304,5 +329,14 @@ public class NetworkManager {
     
     public Frame getFrame() {
         return frame;
+    }
+    
+    public NetworkListener getListener() {
+        return listener;
+    }
+
+    public void setListener(NetworkListener listener) {
+        this.listener = listener;
+        System.out.println("NetworkListener set: " + (listener != null ? listener.getClass().getSimpleName() : "null"));
     }
 }
