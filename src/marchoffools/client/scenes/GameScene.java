@@ -3,6 +3,7 @@ package marchoffools.client.scenes;
 import static marchoffools.client.core.Assets.Backgrounds.DEFAULT;
 import static marchoffools.client.core.Assets.Colors.*;
 import static marchoffools.client.core.Config.*;
+import marchoffools.client.core.ResourceManager;
 import static marchoffools.common.message.RoomActionMessage.*;
 
 import java.awt.Dimension;
@@ -17,7 +18,6 @@ import java.util.List;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
@@ -58,6 +58,8 @@ public class GameScene extends Scene implements NetworkListener {
 
     public GameScene(String myName, String opponentName, int myRole, int opponentRole) {
         super(DEFAULT);
+        
+        marchoffools.client.core.ResourceManager.loadAllResources();
         
         this.myName = myName;
         this.opponentName = opponentName;
@@ -427,25 +429,6 @@ public class GameScene extends Scene implements NetworkListener {
         }
     }
     
-    
-    
-    
-    
-    
-   
-
-    
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -517,19 +500,19 @@ public class GameScene extends Scene implements NetworkListener {
         public PlayerCharacter(int x, int y) {
             this.x = x;
             this.y = y;
-            loadImage();
+            
+            initImage();
         }
         
-        private void loadImage() {
-            try {
-                image = new ImageIcon(getClass().getResource("/assets/testCharacter.png")).getImage();
-                
-                // 이미지 크기에 맞게 width, height 조정
-                 width = image.getWidth(null);
-                 height = image.getHeight(null);
-            } catch (Exception e) {
-                System.err.println("Failed to load player image: " + e.getMessage());
-                image = null;
+        private void initImage() {
+            this.image = ResourceManager.getImage("player");
+            
+            if (this.image != null) {
+                this.width = image.getWidth(null);
+                this.height = image.getHeight(null);
+            } else {
+                this.width = 50;
+                this.height = 50;
             }
         }
         
@@ -556,19 +539,18 @@ public class GameScene extends Scene implements NetworkListener {
         public Obstacle(int x, int y) {
             this.x = x;
             this.y = y;
-            loadImage();
+            initImage();
         }
         
-        private void loadImage() {
-            try {
-                image = new ImageIcon(getClass().getResource("/assets/testObstacle.png")).getImage();
-                
-                // 이미지 크기에 맞게 width, height 조정 
-                width = image.getWidth(null);
-                height = image.getHeight(null);
-            } catch (Exception e) {
-                System.err.println("Failed to load obstacle image: " + e.getMessage());
-                image = null;
+        private void initImage() {
+        	this.image = ResourceManager.getImage("obstacle");
+            
+            if (this.image != null) {
+                this.width = image.getWidth(null);
+                this.height = image.getHeight(null);
+            } else {
+                this.width = 50;
+                this.height = 50;
             }
         }
         
@@ -602,19 +584,24 @@ public class GameScene extends Scene implements NetworkListener {
             this.x = x;
             this.y = y;
             this.type = type;
-            loadImage();
+            initImage();
         }
         
-        private void loadImage() {
-            try {
-                image = new ImageIcon(getClass().getResource("/assets/testEnemy2.png")).getImage();
-                
-                // 이미지 크기에 맞게 width, height 조정 
-                 width = image.getWidth(null);
-                 height = image.getHeight(null);
-            } catch (Exception e) {
-                System.err.println("Failed to load enemy image: " + e.getMessage());
-                image = null;
+        private void initImage() {
+        	String resourceKey = "enemy_" + type; 
+            
+            this.image = ResourceManager.getImage(resourceKey);
+            
+            if (this.image == null) {
+                 this.image = ResourceManager.getImage("enemy_default");
+            }
+
+            if (this.image != null) {
+                this.width = image.getWidth(null);
+                this.height = image.getHeight(null);
+            } else {
+                this.width = 50;
+                this.height = 50;
             }
         }
         
