@@ -675,8 +675,7 @@ public class GameScene extends Scene implements NetworkListener {
     public void onGameState(GameStateMessage msg) {
         System.out.println("GameScene received GameState");
         
-        // TODO: 서버에서 보낸 게임 상태 업데이트
-        // 예: 타이머, 점수, 플레이어 위치 등
+        // TODO: 서버에서 보낸 게임 상태 업데이트(예: 타이머, 점수, 플레이어 위치 등)
     }
     
     @Override

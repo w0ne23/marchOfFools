@@ -32,6 +32,7 @@ import javax.swing.text.html.HTMLEditorKit;
 
 import marchoffools.client.core.Scene;
 import marchoffools.client.network.NetworkManager;
+import marchoffools.client.network.NetworkListener;
 import marchoffools.client.ui.Button;
 import marchoffools.client.ui.RatioLayout;
 import marchoffools.common.message.ChatMessage;
@@ -43,7 +44,7 @@ import marchoffools.common.protocol.MessageType;
 /**
  * 대기실 화면 (LobbyScene with RoomScene Design)
  */
-public class LobbyScene extends Scene {
+public class LobbyScene extends Scene implements NetworkListener {
 
     private static final long serialVersionUID = 1L;
 
@@ -480,10 +481,10 @@ public class LobbyScene extends Scene {
         this.players = msg.getPlayers();
         this.canStart = msg.isCanStart();
         
-        SwingUtilities.invokeLater(this::refreshUI);
+        refreshUI();
     }
     
- // [수정] UI 갱신 메서드: 모든 UI 상태를 서버 데이터(me) 기준으로 동기화
+ // UI 갱신 메서드: 모든 UI 상태를 서버 데이터(me) 기준으로 동기화
     private void refreshUI() {
         // 1. Room ID 업데이트
         if (lRoomIdValue != null && roomId != null) {
@@ -507,11 +508,11 @@ public class LobbyScene extends Scene {
         }
         
         // ============================================================
-        // ★ [핵심] 서버 데이터(me)를 기반으로 내 UI 상태 강제 동기화
+        // ★ 서버 데이터(me)를 기반으로 내 UI 상태 강제 동기화
         // ============================================================
         if (me != null) {
-            this.isReady = me.isReady(); // 서버 데이터로 덮어쓰기
-            this.myRole = me.getRole();  // 서버 데이터로 덮어쓰기
+            this.isReady = me.isReady(); 
+            this.myRole = me.getRole();  
             
             // 2-1. Ready 버튼 상태 동기화
             if (isReady) {
@@ -522,7 +523,7 @@ public class LobbyScene extends Scene {
                 bReady.setButtonColors(LIGHT_GRAY, LIGHT_GRAY, LIGHT_GRAY.darker());
             }
 
-            // 2-2. [추가] 역할 버튼 선택 상태 동기화 (내가 선택한 것 파란색으로)
+            // 2-2. 역할 버튼 선택 상태 동기화
             if (this.myRole == ROLE_KNIGHT) {
                 bSelectKnight.setButtonColors(BLUE, BLUE, BLUE);
                 bSelectHorse.setButtonColors(LIGHT_GRAY, WHITE, GRAY);
@@ -534,7 +535,7 @@ public class LobbyScene extends Scene {
                 bSelectHorse.setButtonColors(LIGHT_GRAY, WHITE, GRAY);
             }
 
-            // 2-3. [추가] 캐릭터 선택 버튼 활성화 동기화
+            // 2-3. 캐릭터 선택 버튼 활성화 동기화
             // 역할(Role)이 선택되어 있어야만(NONE이 아니면) 활성화
             if (this.myRole != ROLE_NONE) {
                 bSelectCharacter.setEnabled(true);
@@ -616,7 +617,6 @@ public class LobbyScene extends Scene {
         addChatMessage(msg.getSenderName(), msg.getContent(), type);
     }
 
-    // HTML 채팅 추가 (RoomScene 스타일)
     private void addChatMessage(String sender, String message, String type) {
         String html = "";
         String selfBg = toHex(BLUE);
@@ -782,5 +782,21 @@ public class LobbyScene extends Scene {
             
             switchTo(gameScene);
         });
+    }
+    
+    // ==========================================
+    //        NetworkListener 구현
+    // ==========================================
+    
+    @Override
+    public void onRoomInfo(RoomInfoMessage msg) {
+        System.out.println("LobbyScene received RoomInfo");
+        updateRoomInfo(msg);  // 기존 메서드 재사용
+    }
+    
+    @Override
+    public void onChat(ChatMessage msg) {
+        System.out.println("LobbyScene received Chat");
+        receiveChat(msg);  // 기존 메서드 재사용
     }
 }

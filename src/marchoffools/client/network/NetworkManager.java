@@ -207,48 +207,53 @@ public class NetworkManager {
             return;
         }
         
-        // 현재 Scene 확인
-        Scene currentScene = frame.getCurrentScene();
-        
-        if (currentScene instanceof LobbyScene) {
-            // 이미 LobbyScene이면 업데이트만
-            System.out.println("LobbyScene 업데이트");
-            ((LobbyScene) currentScene).updateRoomInfo(msg);
-        } else {
-            // 다른 Scene이면 LobbyScene으로 전환
-            System.out.println("LobbyScene으로 전환");
-            SwingUtilities.invokeLater(() -> {
-                LobbyScene lobbyScene = new LobbyScene();
-                frame.switchScene(lobbyScene);
-                // Scene 전환 완료 후 데이터 설정
-                lobbyScene.updateRoomInfo(msg);
-            });
-        }
+        SwingUtilities.invokeLater(() -> {
+            if (listener != null) {
+                // listener가 있으면 전달
+                listener.onRoomInfo(msg);
+            } else {
+                // listener가 없으면 Scene 전환 시도
+                System.out.println("Warning: No NetworkListener, transitioning to LobbyScene and delivering RoomInfo");
+                
+                Scene currentScene = frame.getCurrentScene();
+                
+                if (!(currentScene instanceof LobbyScene)) {
+                    // LobbyScene이 아니면 전환
+                    LobbyScene lobbyScene = new LobbyScene();
+                    frame.switchScene(lobbyScene);
+                    // Scene 전환 직후 RoomInfo 전달
+                    lobbyScene.updateRoomInfo(msg);
+                } else {
+                    // 이미 LobbyScene인데 listener가 없는 경우
+                    System.err.println("Error: LobbyScene exists but listener not set");
+                    ((LobbyScene) currentScene).updateRoomInfo(msg);
+                }
+            }
+        });
     }
     
     private void handleGameStartFromRoomInfo(RoomInfoMessage msg) {
         System.out.println("=== Game Starting (from RoomInfo) ===");
         
-        SwingUtilities.invokeLater(() -> {
-            Scene currentScene = frame.getCurrentScene();
-            if (currentScene instanceof LobbyScene) {
-                ((LobbyScene) currentScene).onGameStart();
-            } else {
-                System.err.println("Warning: Game start signal received but not in LobbyScene");
-            }
-        });
+        if (listener != null) {
+            SwingUtilities.invokeLater(() -> {
+                // LobbyScene이면 onGameStart 호출 (별도 처리)
+                if (listener instanceof marchoffools.client.scenes.LobbyScene) {
+                    ((marchoffools.client.scenes.LobbyScene) listener).onGameStart();
+                }
+            });
+        }
     }
     
     private void handleChat(ChatMessage msg) {
     	System.out.println("Chat 수신: " + msg.getSenderName() + ": " + msg.getContent());
         
-        Scene currentScene = frame.getCurrentScene();
-        
-        // LobbyScene일 때만 채팅 표시
-        if (currentScene instanceof LobbyScene) {
-            ((LobbyScene) currentScene).receiveChat(msg);
+    	if (listener != null) {
+            SwingUtilities.invokeLater(() -> {
+                listener.onChat(msg);
+            });
         } else {
-            System.out.println("Warning: Chat received but not in LobbyScene");
+            System.out.println("Warning: No NetworkListener set for Chat");
         }
     }
     
