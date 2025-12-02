@@ -90,7 +90,6 @@ public class GameScene extends Scene implements NetworkListener {
     
     @Override
     public void onExit() {
-        stopGameTimer();
         super.onExit();
     }
     
@@ -254,28 +253,13 @@ public class GameScene extends Scene implements NetworkListener {
             if (remainingTime > 0) {
                 remainingTime--;
                 updateTimer(remainingTime);
-            } else {
-                gameTimer.stop();
-                onTimeUp();
-            }
+            } 
         });
         gameTimer.start();
     }
     
-    public void stopGameTimer() {
-        if (gameTimer != null && gameTimer.isRunning()) {
-            gameTimer.stop();
-        }
-    }
-    
-    private void onTimeUp() {
-        System.out.println("Time's up!");
-        // TODO: 게임 종료 처리(결과 화면 띄우기, 점수 저장, 대기실?로 돌아가기)
-    }
-    
     public void updateTimer(int seconds) {
-        this.remainingTime = seconds;
-        lTimer.setText("⏱ " + formatTime(remainingTime));
+        lTimer.setText("⏱ " + formatTime(seconds));
     }
     
     private String formatTime(int seconds) {
@@ -663,13 +647,15 @@ public class GameScene extends Scene implements NetworkListener {
         System.out.println("GameScene received GameState");
         
         // TODO: 서버에서 보낸 게임 상태 업데이트(예: 타이머, 점수, 플레이어 위치 등)
+        this.remainingTime = msg.getRemainingTime();
+        
+        updateTimer(this.remainingTime);
     }
     
     @Override
     public void onGameResult(GameResultMessage msg) {
         System.out.println("GameScene received GameResult: score=" + msg.getTotalScore());
         
-        stopGameTimer();
         
         // TODO: 결과 화면으로 전환
     }
