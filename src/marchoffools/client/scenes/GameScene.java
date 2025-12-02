@@ -14,6 +14,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -55,6 +56,9 @@ public class GameScene extends Scene implements NetworkListener {
     
     private Button myEmojiButton;
     private Button opponentEmojiButton;
+    
+    private Thread gameThread;
+    private volatile boolean isRunning = false;
 
     public GameScene(String myName, String opponentName, int myRole, int opponentRole) {
         super(DEFAULT);
@@ -86,11 +90,54 @@ public class GameScene extends Scene implements NetworkListener {
         System.out.println("GameScene initialized:");
         System.out.println("  My Name: " + myName + " [" + getRoleName(myRole) + "]");
         System.out.println("  Opponent: " + opponentName + " [" + getRoleName(opponentRole) + "]");
+        
+        startGameLoop();
     }
     
     @Override
     public void onExit() {
+    	stopGameLoop();
         super.onExit();
+    }
+    
+    // ==========================================
+    //        게임 루프 로직 
+    // ==========================================
+    
+    private void startGameLoop() {
+        if (isRunning) return;
+        isRunning = true;
+        
+        gameThread = new Thread(() -> {
+            System.out.println("Game Loop Started");
+            while (isRunning) {
+                
+                // 1. 논리 업데이트 (위치 이동, 충돌 체크 등)
+                updateGame();
+                
+                // 2. 화면 갱신 (paintComponent 호출)
+                repaint();
+            }
+        });
+        gameThread.start();
+    }
+    
+    private void stopGameLoop() {
+        isRunning = false;
+        if (gameThread != null) {
+            try {
+                gameThread.join(100); // 스레드 종료 대기
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+    
+    private void updateGame() {
+        // 게임 캔버스 내부의 객체들(장애물, 배경 등) 업데이트 위임
+        if (gameCanvas != null) {
+            gameCanvas.update();
+        }
     }
     
     // ==========================================
@@ -435,10 +482,11 @@ public class GameScene extends Scene implements NetworkListener {
         private void initializeGameObjects() {
             player = new PlayerCharacter(100, 300);
             
-            obstacles = new ArrayList<>();
+            // ArrayList 대신 CopyOnWriteArrayList 사용 (읽기/쓰기 안전)
+            obstacles = new CopyOnWriteArrayList<>(); 
             obstacles.add(new Obstacle(700, 470));
             
-            enemies = new ArrayList<>();
+            enemies = new CopyOnWriteArrayList<>();
             enemies.add(new Enemy(900, 70, "eagle"));
         }
         
@@ -457,6 +505,26 @@ public class GameScene extends Scene implements NetworkListener {
             for (Enemy enemy : enemies) {
                 enemy.draw(g);
             }
+        }
+        
+        public void update() {
+            // 스크롤 속도 (장애물이 다가오는 속도)
+            int scrollSpeed = 5; 
+            
+            // 1. 장애물 이동
+            for (int i = 0; i < obstacles.size(); i++) {
+                Obstacle obs = obstacles.get(i);
+                obs.move(-scrollSpeed, 0); // 왼쪽으로 이동
+            }
+            
+            // 2. 적 이동
+            for (int i = 0; i < enemies.size(); i++) {
+                Enemy enemy = enemies.get(i);
+                enemy.move(-scrollSpeed, 0); // 왼쪽으로 이동
+            }
+            
+            // 3. 배경 스크롤 로직이 있다면 추가
+            // backgroundX -= scrollSpeed;
         }
         
         public void addObstacle(Obstacle obstacle) {
