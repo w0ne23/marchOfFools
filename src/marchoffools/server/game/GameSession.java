@@ -38,7 +38,7 @@ public class GameSession {
         }
 
         try {
-            // 1. 시간 감소
+            // 1. 시간 증가
         	playTime++;
 
             // 2. 시간 정보 전송
