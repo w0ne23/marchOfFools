@@ -14,7 +14,7 @@ public class Frame extends JFrame implements SceneContext, NetworkContext{
 
 	private Scene currentScene;
 	private Stack<Scene> history = new Stack<>();
-	private NetworkManager NetworkManager;
+	private NetworkManager networkManager;
 	
 	public Frame() {
 		setTitle("MarchOfFools");
@@ -24,7 +24,7 @@ public class Frame extends JFrame implements SceneContext, NetworkContext{
 		getContentPane().setPreferredSize(new Dimension(WINDOW_WIDTH, WINDOW_HEIGHT));
 		pack();
 		
-		NetworkManager = new NetworkManager(this);
+		networkManager = new NetworkManager(this);
 //		
 //		// [↓↓↓ 임시 테스트 코드 ↓↓↓]
 //	    // 서버가 12345 포트로 실행 중이라고 가정
@@ -41,7 +41,7 @@ public class Frame extends JFrame implements SceneContext, NetworkContext{
 	
 	@Override
 	public NetworkManager getNetworkManager() {
-        return NetworkManager;
+        return networkManager;
     }
 
 	@Override
@@ -78,6 +78,11 @@ public class Frame extends JFrame implements SceneContext, NetworkContext{
 	        revalidate();
 	        repaint();
 	    }
+	}
+	
+	@Override
+	public Scene getCurrentScene() {
+	    return currentScene;
 	}
 	
 }

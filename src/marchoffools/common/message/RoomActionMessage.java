@@ -13,11 +13,11 @@ public class RoomActionMessage extends Message {
     public static final int JOIN_ROOM = 4;
     public static final int LEAVE_ROOM = 5;
     public static final int QUICK_MATCH = 6;
-    public static final int REQUEST_RANDOM_ROLE = 7;
-    public static final int SELECT_CHARACTER = 8;
-    public static final int PLAYER_READY = 9;
-    public static final int START_GAME = 10;
-    public static final int CANCEL_MATCH = 11;
+    public static final int CANCEL_MATCH = 7;
+    public static final int REQUEST_RANDOM_ROLE = 8;
+    public static final int SELECT_CHARACTER = 9;
+    public static final int PLAYER_READY = 10;
+    public static final int START_GAME = 11;
     
     // 캐릭터 타입 상수
     public static final int ROLE_NONE = 0;

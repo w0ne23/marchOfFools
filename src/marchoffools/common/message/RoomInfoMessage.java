@@ -9,15 +9,16 @@ public class RoomInfoMessage extends Message {
     private static final long serialVersionUID = 1L;
     
     // 방 상태 상수
-    public static final int STATUS_NONE = 0;
-    public static final int ROOM_CREATED = 1;
-    public static final int ROOM_UPDATED = 2;
-    public static final int PLAYER_JOINED = 3;
-    public static final int PLAYER_LEFT = 4;
-    public static final int ROLE_SELECTION_STARTED = 5;
-    public static final int ROLES_CONFIRMED = 6;
-    public static final int PLAYER_READY_CHANGED = 7;
-    public static final int CHARACTER_SELECTED = 8;
+    public static final int STATUS_WAITING = 0;
+    public static final int STATUS_PLAYING = 1;
+    public static final int STATUS_FINISHED = 2;
+    
+    public static final int ROOM_CREATED = 3;
+    public static final int PLAYER_JOINED = 4;
+    public static final int PLAYER_LEFT = 5;
+    public static final int ROLE_CHANGED = 6;
+    public static final int READY_CHANGED = 7;
+    public static final int CHARACTER_CHANGED = 8;
     public static final int GAME_STARTING = 9;
     
     private int status;               // 방 상태

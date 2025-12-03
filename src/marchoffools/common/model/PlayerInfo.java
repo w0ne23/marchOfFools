@@ -7,7 +7,7 @@ public class PlayerInfo implements Serializable {
     
     private String playerId;
     private String playerName;
-    private int role;;    // RoomActionMessage의 캐릭터 상수 사용
+    private int role;
     private boolean ready;
     private int score; 
     

@@ -22,9 +22,6 @@ public class ClientHandler extends Thread {
     private String playerName;
     private String currentRoomId;
     
-    // PlayerMessage 인터페이스를 가정
-    private interface PlayerMessage { String getPlayerId(); }
-    
     public ClientHandler(Socket socket, GameServer server) {
         this.socket = socket;
         this.server = server;
@@ -55,21 +52,12 @@ public class ClientHandler extends Thread {
             while (true) {
                 Packet packet = (Packet) in.readObject();
                 
-                String senderId = null;
-                Object data = packet.getData();
-                
-                // data가 PlayerMessage를 구현한다고 가정하고 playerId 추출
-                if (data instanceof PlayerMessage) { 
-                    senderId = ((PlayerMessage) data).getPlayerId();
-                }
-                
-                System.out.println("받은 패킷: " + packet.getType() + " from " + 
-                    (playerName != null ? playerName : senderId));
+                System.out.println("Received packet: " + packet.getType() + " from " + playerName);
                 
                 handlePacket(packet);
             }
         } catch (IOException | ClassNotFoundException e) {
-            System.out.println("데이터 수신 중 오류로 연결 종료 " + e.getMessage());
+            System.out.println("Connection closed due to error: " + e.getMessage());
         }
     }
     
@@ -114,27 +102,28 @@ public class ClientHandler extends Thread {
             	handleJoinRoom(msg);
                 break;
                 
-            case RoomActionMessage.QUICK_MATCH:  // ✅ 구현
+            case RoomActionMessage.QUICK_MATCH: 
                 handleQuickMatch(msg);
                 break;
                 
-            case RoomActionMessage.LEAVE_ROOM:  // ✅ 구현
+            case RoomActionMessage.LEAVE_ROOM:  
                 handleLeaveRoom(msg);
+                break;
+                
+            case RoomActionMessage.CANCEL_MATCH:  
+                handleCancelMatch(msg);
                 break;
               
             case RoomActionMessage.SELECT_CHARACTER:  // TODO: Phase 3
-                System.out.println("역할 선택 요청: " + playerName);
-                sendResponse(ResponseMessage.success("역할 선택 기능은 Phase 3에서 구현됩니다"));
+            	handleSelectCharacter(msg);
                 break;
                 
             case RoomActionMessage.PLAYER_READY:  // TODO: Phase 3
-                System.out.println("준비 요청: " + playerName);
-                sendResponse(ResponseMessage.success("준비 기능은 Phase 3에서 구현됩니다"));
+            	handlePlayerReady(msg);
                 break;
                 
             case RoomActionMessage.START_GAME:  // TODO: Phase 4
-                System.out.println("게임 시작 요청: " + playerName);
-                sendResponse(ResponseMessage.success("게임 시작 기능은 Phase 4에서 구현됩니다"));
+            	handleStartGame(msg);
                 break;
                 
             default:
@@ -274,7 +263,7 @@ public class ClientHandler extends Thread {
         }
     }
 
-    // ✅ 빠른 매칭 처리
+    // 빠른 매칭 처리
     private void handleQuickMatch(RoomActionMessage msg) {
         // 이미 방에 있는지 확인
         if (currentRoomId != null) {
@@ -316,7 +305,7 @@ public class ClientHandler extends Thread {
         }
     }
 
-    // ✅ 방 나가기 처리
+    // 방 나가기 처리
     private void handleLeaveRoom(RoomActionMessage msg) {
         // 방에 있는지 확인
         if (currentRoomId == null) {
@@ -358,23 +347,205 @@ public class ClientHandler extends Thread {
         }
     }
     
+    private void handleCancelMatch(RoomActionMessage msg) {
+        // 빠른 매칭 중 취소는 방 나가기와 동일
+        handleLeaveRoom(msg);
+    }
+    
     private void handleChat(ChatMessage msg) {
         System.out.println("채팅: " + msg.getSenderName() + ": " + msg.getContent());
         
-        // TODO: Phase 3에서 같은 방 사람들에게 브로드캐스트
+        if (currentRoomId == null) {
+            sendResponse(ResponseMessage.error(
+                ResponseMessage.NOT_IN_ROOM,
+                "Not in a room"
+            ));
+            return;
+        }
+        
+        RoomManager roomManager = server.getRoomManager();
+        Room room = roomManager.getRoom(currentRoomId);
+        
+        if (room == null) {
+            sendResponse(ResponseMessage.error(
+                ResponseMessage.ROOM_NOT_FOUND,
+                "Room not found"
+            ));
+            return;
+        }
+        
         Packet packet = new Packet(MessageType.CHAT, msg);
-        broadcasting(packet);
+        room.broadcastPacket(packet);
+    }
+    
+    private void handleSelectCharacter(RoomActionMessage msg) {
+        // 1. 방 정보 가져오기
+    	if (currentRoomId == null) {
+            sendResponse(ResponseMessage.error(
+                ResponseMessage.NOT_IN_ROOM,
+                "방에 입장해 있지 않습니다"
+            ));
+            return;
+        }
+        RoomManager roomManager = server.getRoomManager();
+        Room room = roomManager.getRoom(currentRoomId);
+        
+        if (room == null) {
+            sendResponse(ResponseMessage.error(
+                ResponseMessage.ROOM_NOT_FOUND,
+                "방을 찾을 수 없습니다"
+            ));
+            return;
+        }
+
+        // 2. 역할 중복 체크 
+        int requestedRole = msg.getRoleType();
+        if (room.isRoleTaken(requestedRole, playerId)) {
+            sendResponse(ResponseMessage.error(
+                ResponseMessage.ROLE_ALREADY_TAKEN, 
+                "이미 선택된 역할입니다"
+            ));
+            return;
+        }
+
+        // 3. 방 객체의 데이터 업데이트 (동기화됨)
+        room.setPlayerRole(playerId, requestedRole);
+        System.out.println("플레이어 역할 변경: " + playerName + " -> " + requestedRole);
+
+        // 4. 변경된 정보를 방 안의 '모든' 클라이언트에게 전송
+        room.broadcastRoomInfo(RoomInfoMessage.ROLE_CHANGED);
+    }
+    
+    private void handlePlayerReady(RoomActionMessage msg) {
+        // 1. 현재 방 정보 가져오기
+        if (currentRoomId == null) return;
+        RoomManager roomManager = server.getRoomManager();
+        Room room = roomManager.getRoom(currentRoomId);
+        
+        if (room == null) return;
+
+        // 2. 해당 플레이어의 준비 상태 업데이트
+        room.setPlayerReady(playerId, msg.isReady());
+        System.out.println("플레이어 준비 상태 변경: " + playerName + " -> " + msg.isReady());
+
+        // 3. 방 안의 모든 사람에게 최신 상태 브로드캐스트
+        room.broadcastRoomInfo(RoomInfoMessage.READY_CHANGED);
+    }
+    
+    private void handleStartGame(RoomActionMessage msg) {
+        System.out.println("게임 시작 요청: " + playerName);
+        
+        // 1. 방에 있는지 확인
+        if (currentRoomId == null) {
+            sendResponse(ResponseMessage.error(
+                ResponseMessage.NOT_IN_ROOM,
+                "방에 입장해 있지 않습니다"
+            ));
+            return;
+        }
+        
+        RoomManager roomManager = server.getRoomManager();
+        Room room = roomManager.getRoom(currentRoomId);
+        
+        if (room == null) {
+            sendResponse(ResponseMessage.error(
+                ResponseMessage.ROOM_NOT_FOUND,
+                "방을 찾을 수 없습니다"
+            ));
+            return;
+        }
+        
+        // 2. 방장인지 확인
+        if (!playerId.equals(room.getHostId())) {
+            System.out.println("✗ 방장이 아님: " + playerName);
+            sendResponse(ResponseMessage.error(
+                ResponseMessage.NOT_HOST,
+                "방장만 게임을 시작할 수 있습니다"
+            ));
+            return;
+        }
+        
+        // 3. 게임 시작 가능 여부 확인
+        if (!room.canStartGame()) {
+            System.out.println("✗ 게임 시작 불가");
+            System.out.println("  - 플레이어 수: " + room.getPlayerCount());
+            
+            sendResponse(ResponseMessage.error(
+                ResponseMessage.PLAYERS_NOT_READY,
+                "모든 플레이어가 준비되지 않았습니다"
+            ));
+            return;
+        }
+        
+        // 게임 시작
+        System.out.println("게임 시작 조건 충족");
+        
+        // 4. 방 상태를 PLAYING으로 변경
+        room.startGame();  // playing = true, status = "PLAYING"
+        System.out.println("✓ 방 상태 변경: WAITING → PLAYING");
+        
+        // 5. 변경된 RoomInfo를 모든 플레이어에게 브로드캐스트
+        room.broadcastRoomInfo(RoomInfoMessage.GAME_STARTING);
+        System.out.println("✓ 모든 플레이어에게 게임 시작 신호 전송 완료");
     }
     
     private void handleGameInput(GameInputMessage msg) {
-        System.out.println("게임 입력: " + msg.getInputType() + " from " + playerName);
+        int inputType = msg.getInputType();
+        System.out.println("게임 입력 수신: type=" + inputType + ", value=" + msg.getValue() + " from " + playerName);
         
-        // TODO: Phase 4에서 게임 세션에 전달
+        // 방에 있는지 확인
+        if (currentRoomId == null) {
+            System.out.println("Warning: GameInput received but player not in room");
+            return;
+        }
+        
+        RoomManager roomManager = server.getRoomManager();
+        Room room = roomManager.getRoom(currentRoomId);
+        
+        if (room == null) {
+            System.out.println("Warning: Room not found for game input broadcast");
+            return;
+        }
+        
+        // 입력 타입별 처리
+        switch (inputType) {
+            case GameInputMessage.EMOTION:
+                // 감정 표현은 항상 브로드캐스트
+                System.out.println("감정 표현: " + playerName + " -> " + msg.getValue());
+                Packet emotionPacket = new Packet(MessageType.GAME_INPUT, msg);
+                room.broadcastPacket(emotionPacket);
+                System.out.println("✓ 감정 표현 브로드캐스트 완료");
+                break;
+                
+            case GameInputMessage.JUMP:
+            case GameInputMessage.SLIDE:
+            case GameInputMessage.ATTACK:
+                // 게임 중일 때만 처리
+                if (!room.isPlaying()) {
+                    System.out.println("Warning: Game input sent but game not started");
+                    return;
+                }
+                
+                // TODO: 게임 로직 처리 후 브로드캐스트
+                Packet gamePacket = new Packet(MessageType.GAME_INPUT, msg);
+                room.broadcastPacket(gamePacket);
+                break;
+                
+            case GameInputMessage.USE_ITEM:
+                // TODO: 아이템 사용 처리
+                System.out.println("아이템 사용 요청: " + playerName);
+                break;
+                
+            default:
+                System.out.println("Unknown game input type: " + inputType);
+        }
     }
     
     public void sendPacket(Packet packet) {
         try {
             if (out != null) {
+            	out.reset();
+            	
                 out.writeObject(packet);
                 out.flush();
             }
@@ -407,6 +578,27 @@ public class ClientHandler extends Thread {
     }
     
     private void cleanup() {
+    	// 방에 있었다면 방에서 나가기 처리
+    	if (currentRoomId != null) {
+            RoomManager roomManager = server.getRoomManager();
+            Room room = roomManager.getRoom(currentRoomId);
+            
+            if (room != null) {
+                room.removePlayer(playerId);
+                
+                System.out.println("비정상 종료로 방 나가기: " + playerName + " ← " + currentRoomId);
+                
+                // 방이 비었으면 삭제
+                if (room.isEmpty()) {
+                    roomManager.removeRoom(currentRoomId);
+                } else {
+                    // 남은 플레이어들에게 알림
+                    room.broadcastRoomInfo(RoomInfoMessage.PLAYER_LEFT);
+                }
+            }
+            currentRoomId = null;
+        }
+    	
         try {
             if (in != null) in.close();
             if (out != null) out.close();

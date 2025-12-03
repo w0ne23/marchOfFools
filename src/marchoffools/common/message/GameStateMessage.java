@@ -15,6 +15,8 @@ public class GameStateMessage extends Message {
     private double distance;          // 진행 거리
     private double gameSpeed;         // 게임 속도
     private int score;                // 현재 점수
+    private String roomId; 			  // 방 번호
+    private int currentPlayTime;	  // 남은 시간 
     
     // 방해물 목록
     private List<ObstacleData> obstacles;
@@ -45,6 +47,15 @@ public class GameStateMessage extends Message {
 //    public void setPlayer2Health(int player2Health) {
 //        this.player2Health = player2Health;
 //    }
+    
+    public GameStateMessage(String roomId, int currentPlayTime) {
+        this.roomId = roomId;
+        this.currentPlayTime = currentPlayTime;
+    }
+
+    public int getRemainingTime() {
+        return currentPlayTime;
+    }
     
     public double getDistance() {
         return distance;

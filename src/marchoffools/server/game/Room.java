@@ -4,11 +4,16 @@ import java.util.*;
 import marchoffools.common.model.PlayerInfo;
 import marchoffools.common.message.RoomActionMessage;
 import marchoffools.common.message.RoomInfoMessage;
+import marchoffools.common.protocol.Message;
 import marchoffools.common.protocol.MessageType;
 import marchoffools.common.protocol.Packet;
 import marchoffools.server.network.ClientHandler;
 
 public class Room {
+	
+	public static final int STATUS_WAITING = 0;
+    public static final int STATUS_PLAYING = 1;
+    public static final int STATUS_FINISHED = 2;
     
     private String roomId;
     private String hostId;
@@ -16,8 +21,11 @@ public class Room {
     private Map<String, ClientHandler> handlers;  // playerId -> ClientHandler
     private boolean playing;
     private boolean full;
+    private int status;
     
     private static final int MAX_PLAYERS = 2;
+    
+    private GameSession gameSession;
     
     public Room(String roomId, String hostId) {
         this.roomId = roomId;
@@ -26,10 +34,11 @@ public class Room {
         this.handlers = new HashMap<>();
         this.playing = false;
         this.full = false;
+        this.status = STATUS_WAITING;
     }
     
     // 플레이어 추가
-    public boolean addPlayer(String playerId, String playerName, ClientHandler handler) {
+    public synchronized boolean addPlayer(String playerId, String playerName, ClientHandler handler) {
         if (players.size() >= MAX_PLAYERS) {
             return false;
         }
@@ -51,12 +60,21 @@ public class Room {
     }
     
     // 플레이어 제거
-    public void removePlayer(String playerId) {
+    public synchronized void removePlayer(String playerId) {
         PlayerInfo removed = players.remove(playerId);
         handlers.remove(playerId);
         
         if (removed != null) {
             System.out.println("방 " + roomId + "에서 플레이어 제거: " + removed.getPlayerName());
+        }
+        
+        // 방장이 나갔고 방에 다른 플레이어가 남아있으면 방장 위임
+        if (playerId.equals(hostId) && !players.isEmpty()) {
+            String newHostId = players.keySet().iterator().next();
+            PlayerInfo newHost = players.get(newHostId);
+            this.hostId = newHostId;
+            
+            System.out.println("방장 위임: " + newHost.getPlayerName() + " (ID: " + newHostId + ")");
         }
         
         if (players.size() < MAX_PLAYERS) {
@@ -65,7 +83,7 @@ public class Room {
     }
     
     // 역할 설정
-    public void setPlayerRole(String playerId, int role) {
+    public synchronized void setPlayerRole(String playerId, int role) {
         PlayerInfo player = players.get(playerId);
         if (player != null) {
             player.setRole(role);
@@ -79,7 +97,7 @@ public class Room {
     }
     
     // 역할이 이미 선택되었는지 확인
-    public boolean isRoleTaken(int role, String requestingPlayerId) {
+    public synchronized boolean isRoleTaken(int role, String requestingPlayerId) {
         for (Map.Entry<String, PlayerInfo> entry : players.entrySet()) {
             String playerId = entry.getKey();
             PlayerInfo player = entry.getValue();
@@ -92,7 +110,7 @@ public class Room {
     }
     
     // 준비 상태 설정
-    public void setPlayerReady(String playerId, boolean ready) {
+    public synchronized void setPlayerReady(String playerId, boolean ready) {
         PlayerInfo player = players.get(playerId);
         if (player != null) {
             player.setReady(ready);
@@ -125,14 +143,21 @@ public class Room {
     
     // 두 플레이어가 같은 역할인지 확인
     public boolean hasSameRoles() {
-        if (players.size() != 2) return false;
+    	Set<Integer> selectedRoles = new HashSet<>();
         
-        List<Integer> roles = new ArrayList<>();
         for (PlayerInfo player : players.values()) {
-            roles.add(player.getRole());
+            int role = player.getRole();
+            
+            // 역할이 NONE인 경우는 중복 검사에서 제외
+            if (role != RoomActionMessage.ROLE_NONE) {
+                if (selectedRoles.contains(role)) {
+                    return true; 
+                }
+                selectedRoles.add(role);
+            }
         }
-        
-        return roles.get(0).equals(roles.get(1)) && roles.get(0) != RoomActionMessage.ROLE_NONE;
+        // 중복이 없음
+        return false;
     }
     
     // 방 정보 브로드캐스트
@@ -141,6 +166,7 @@ public class Room {
         msg.setHostId(hostId);
         msg.setPlayers(new ArrayList<>(players.values()));
         msg.setCanStart(canStartGame());
+        msg.setStatus(this.status);
         
         Packet packet = new Packet(MessageType.ROOM_INFO, msg);
         
@@ -149,8 +175,20 @@ public class Room {
         }
     }
     
+    // 같은 방의 모든 플레이어에게 패킷 전송
+    public void broadcastPacket(Packet packet) {
+        for (ClientHandler handler : handlers.values()) {
+            handler.sendPacket(packet);
+        }
+    }
+    
+    public void broadcast(MessageType type, Message msg) {
+        Packet packet = new Packet(type, msg);
+        broadcastPacket(packet);
+    }
+    
     // 게임 시작 가능 여부
-    private boolean canStartGame() {
+    public boolean canStartGame() {
         return players.size() == MAX_PLAYERS && 
                allPlayersHaveRole() && 
                !hasSameRoles() && 
@@ -160,10 +198,24 @@ public class Room {
     // 게임 시작
     public void startGame() {
         this.playing = true;
+        this.status = STATUS_PLAYING;
         System.out.println("방 " + roomId + " 게임 시작!");
+        
+        broadcastRoomInfo(STATUS_PLAYING);
+        
+        this.gameSession = new GameSession(this);
+        this.gameSession.startGame(); 
     }
     
-    // Getters
+    // Getters and Setters
+    public int getStatus() {
+        return status;
+    }
+    
+    public void setStatus(int status) {
+        this.status = status;
+    }
+    
     public String getRoomId() {
         return roomId;
     }

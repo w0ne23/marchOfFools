@@ -30,7 +30,7 @@ public class TitleScene extends Scene {
         p.setLocation(100, WINDOW_HEIGHT*2/5);
 		
 		Button bTutorial = new Button("튜토리얼");
-//		bTutorial.addActionListener(e -> getCallback().switchScene(new TutorialScene()));
+//		bTutorial.addActionListener(e -> switchTo(new GameScene()));
         p.add(bTutorial);
         
         Button bSelectRoom = new Button("방 만들기/참여하기");
