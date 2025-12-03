@@ -22,6 +22,8 @@ import javax.swing.BoxLayout;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+
 import marchoffools.client.network.NetworkManager;
 import marchoffools.client.network.NetworkListener;
 import marchoffools.client.ui.Button;
@@ -59,6 +61,8 @@ public class GameScene extends Scene implements NetworkListener {
     
     private Thread gameThread;
     private volatile boolean isRunning = false;
+    private final int FPS = 60;                
+    private final int TARGET_TIME = 1000 / FPS;
 
     public GameScene(String myName, String opponentName, int myRole, int opponentRole) {
         super(DEFAULT);
@@ -97,6 +101,7 @@ public class GameScene extends Scene implements NetworkListener {
     @Override
     public void onExit() {
     	stopGameLoop();
+    	stopGameTimer();
         super.onExit();
     }
     
@@ -111,12 +116,25 @@ public class GameScene extends Scene implements NetworkListener {
         gameThread = new Thread(() -> {
             System.out.println("Game Loop Started");
             while (isRunning) {
+            	long startTime = System.currentTimeMillis();
                 
                 // 1. 논리 업데이트 (위치 이동, 충돌 체크 등)
                 updateGame();
                 
                 // 2. 화면 갱신 (paintComponent 호출)
                 repaint();
+                
+                // 3. 프레임 속도 조절 (Sleep)
+                long elapsedTime = System.currentTimeMillis() - startTime;
+                long sleepTime = TARGET_TIME - elapsedTime;
+                
+                if (sleepTime > 0) {
+                    try {
+                        Thread.sleep(sleepTime);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
             }
         });
         gameThread.start();
@@ -305,8 +323,17 @@ public class GameScene extends Scene implements NetworkListener {
         gameTimer.start();
     }
     
+    private void stopGameTimer() {
+        if (gameTimer != null && gameTimer.isRunning()) {
+            gameTimer.stop();
+        }
+        gameTimer = null;
+    }
+    
     public void updateTimer(int seconds) {
-        lTimer.setText("⏱ " + formatTime(seconds));
+    	SwingUtilities.invokeLater(() -> {
+            lTimer.setText("⏱ " + formatTime(seconds));
+        });
     }
     
     private String formatTime(int seconds) {
@@ -316,8 +343,10 @@ public class GameScene extends Scene implements NetworkListener {
     }
     
     public void updateScore(int newScore) {
-        this.score = newScore;
-        lScore.setText(String.format("%,d", score));
+    	SwingUtilities.invokeLater(() -> {
+            this.score = newScore;
+            lScore.setText(String.format("%,d", score));
+        });
     }
     
     private void useSkill(Skill skill) {
@@ -425,15 +454,17 @@ public class GameScene extends Scene implements NetworkListener {
         
         String emoji = emotionTypeToEmoji(emotionType);
         
-        if (playerId.equals(nm.getPlayerId())) {
-            if (myEmojiButton != null) {
-                myEmojiButton.setText(emoji);
+        SwingUtilities.invokeLater(() -> {
+            if (playerId.equals(nm.getPlayerId())) {
+                if (myEmojiButton != null) {
+                    myEmojiButton.setText(emoji);
+                }
+            } else {
+                if (opponentEmojiButton != null) {
+                    opponentEmojiButton.setText(emoji);
+                }
             }
-        } else {
-            if (opponentEmojiButton != null) {
-                opponentEmojiButton.setText(emoji);
-            }
-        }
+        });
         
         System.out.println("Emotion updated: " + playerId + " -> " + emoji);
     }
