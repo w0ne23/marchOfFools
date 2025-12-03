@@ -5,12 +5,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import marchoffools.common.message.GameStateMessage;
 import marchoffools.common.protocol.MessageType;
-import marchoffools.server.network.ClientHandler;
 
 public class GameSession {
 
     private String roomId;
-    private int remainingTime = 180; // 기본 3분
+    private int playTime = 0;
     private boolean isGameRunning = false;
     
     private ScheduledExecutorService gameLoop;
@@ -23,6 +22,8 @@ public class GameSession {
 
     public void startGame() {
         isGameRunning = true;
+        playTime = 0;
+        
         // 1초마다 실행
         gameLoop = Executors.newSingleThreadScheduledExecutor();
         gameLoop.scheduleAtFixedRate(this::gameTick, 0, 1, TimeUnit.SECONDS);
@@ -38,15 +39,11 @@ public class GameSession {
 
         try {
             // 1. 시간 감소
-            remainingTime--;
+        	playTime++;
 
-            // 2. 시간 정보 전송 (GameStateMessage 활용)
+            // 2. 시간 정보 전송
             broadcastGameState();
 
-            // 3. 종료 체크
-            if (remainingTime <= 0) {
-                finishGame();
-            }
         } catch (Exception e) {
             e.printStackTrace();
             stopGame();
@@ -54,8 +51,8 @@ public class GameSession {
     }
 
     private void broadcastGameState() {
-        // 기존 GameStateMessage 생성자 활용 (roomId, remainingTime)
-        GameStateMessage msg = new GameStateMessage(roomId, remainingTime);
+        
+        GameStateMessage msg = new GameStateMessage(roomId, playTime);
         
         // Room에 있는 broadcast 메서드 활용
         room.broadcast(MessageType.GAME_STATE, msg); 
@@ -66,15 +63,21 @@ public class GameSession {
         isGameRunning = false;
         stopGame();
         
-        // [수정] 게임 종료 알림도 RoomInfoMessage 활용
         // Room 클래스의 상태 변경 및 알림 메서드 호출
         room.setStatus(Room.STATUS_FINISHED);
         room.broadcastRoomInfo(Room.STATUS_FINISHED);
+        
+        // TODO: 여기서 최종 playTime과 파괴한 장애물 수를 가지고 랭킹 처리
     }
 
     public void stopGame() {
         if (gameLoop != null && !gameLoop.isShutdown()) {
             gameLoop.shutdown();
         }
+    }
+    
+    // 현재까지 생존한 시간을 반환
+    public int getPlayTime() {
+        return playTime;
     }
 }
