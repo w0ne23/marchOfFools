@@ -4,6 +4,7 @@ import java.util.*;
 import marchoffools.common.model.PlayerInfo;
 import marchoffools.common.message.RoomActionMessage;
 import marchoffools.common.message.RoomInfoMessage;
+import marchoffools.common.protocol.Message;
 import marchoffools.common.protocol.MessageType;
 import marchoffools.common.protocol.Packet;
 import marchoffools.server.network.ClientHandler;
@@ -23,6 +24,8 @@ public class Room {
     private int status;
     
     private static final int MAX_PLAYERS = 2;
+    
+    private GameSession gameSession;
     
     public Room(String roomId, String hostId) {
         this.roomId = roomId;
@@ -179,6 +182,11 @@ public class Room {
         }
     }
     
+    public void broadcast(MessageType type, Message msg) {
+        Packet packet = new Packet(type, msg);
+        broadcastPacket(packet);
+    }
+    
     // 게임 시작 가능 여부
     public boolean canStartGame() {
         return players.size() == MAX_PLAYERS && 
@@ -192,6 +200,11 @@ public class Room {
         this.playing = true;
         this.status = STATUS_PLAYING;
         System.out.println("방 " + roomId + " 게임 시작!");
+        
+        broadcastRoomInfo(STATUS_PLAYING);
+        
+        this.gameSession = new GameSession(this);
+        this.gameSession.startGame(); 
     }
     
     // Getters and Setters
