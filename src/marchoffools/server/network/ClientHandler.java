@@ -542,17 +542,18 @@ public class ClientHandler extends Thread {
     }
     
     public void sendPacket(Packet packet) {
-        try {
-            if (out != null) {
-            	out.reset();
-            	
-                out.writeObject(packet);
-                out.flush();
+        synchronized (out) { 
+            try {
+                if (out != null) {
+                    out.reset(); 
+                    out.writeObject(packet);
+                    out.flush();
+                }
+            } catch (IOException e) {
+                System.err.println("패킷 전송 실패: " + e.getMessage());
+                // e.printStackTrace(); 
+                disconnect();
             }
-        } catch (IOException e) {
-            System.err.println("패킷 전송 실패: " + e.getMessage());
-            // 패킷 전송 실패는 소켓이 닫혔거나 네트워크 문제이므로 연결을 끊습니다.
-            disconnect(); 
         }
     }
     
@@ -560,17 +561,6 @@ public class ClientHandler extends Thread {
         response.setPlayerId("server");
         Packet packet = new Packet(MessageType.RESPONSE, response);
         sendPacket(packet);
-    }
-    
-    private void broadcasting(Packet packet) {
-        // GameServer의 clients 목록 접근 시 동기화 유지
-        synchronized (server.getClients()) {
-            for (ClientHandler client : server.getClients()) {
-                if (client != this) {  // 자기 자신 제외
-                    client.sendPacket(packet);
-                }
-            }
-        }
     }
     
     public void disconnect() {

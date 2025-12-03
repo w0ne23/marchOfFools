@@ -49,7 +49,7 @@ public class GameScene extends Scene implements NetworkListener {
     
     private int score = 0;
     private javax.swing.Timer gameTimer;
-    private int remainingTime = 180;
+    private int playTime = 0;
     
     private JPanel currentEmojiSelector = null;
     private Button currentEmojiButton = null;
@@ -174,7 +174,7 @@ public class GameScene extends Scene implements NetworkListener {
         lScore.setBounds(0, 0, WINDOW_WIDTH, 50);
         topPanel.add(lScore);
         
-        lTimer = new JLabel("⏱ " + formatTime(remainingTime), SwingConstants.CENTER);
+        lTimer = new JLabel("⏱ " + formatTime(playTime), SwingConstants.CENTER);
         lTimer.setFont(getFont().deriveFont(Font.BOLD, 24f));
         lTimer.setForeground(BLACK);
         lTimer.setBounds(0, 55, WINDOW_WIDTH, 30);
@@ -314,11 +314,9 @@ public class GameScene extends Scene implements NetworkListener {
     // ==========================================
     
     private void startGameTimer() {
-        gameTimer = new javax.swing.Timer(1000, e -> {
-            if (remainingTime > 0) {
-                remainingTime--;
-                updateTimer(remainingTime);
-            } 
+    	gameTimer = new javax.swing.Timer(1000, e -> {
+            playTime++;
+            updateTimer(playTime);
         });
         gameTimer.start();
     }
@@ -746,9 +744,11 @@ public class GameScene extends Scene implements NetworkListener {
         System.out.println("GameScene received GameState");
         
         // TODO: 서버에서 보낸 게임 상태 업데이트(예: 타이머, 점수, 플레이어 위치 등)
-        this.remainingTime = msg.getRemainingTime();
+        this.playTime = msg.getRemainingTime();
         
-        updateTimer(this.remainingTime);
+        SwingUtilities.invokeLater(() -> {
+            updateTimer(this.playTime);
+        });
     }
     
     @Override
