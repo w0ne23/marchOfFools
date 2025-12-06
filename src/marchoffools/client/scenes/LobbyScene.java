@@ -81,6 +81,9 @@ public class LobbyScene extends Scene implements NetworkListener {
     // 캐릭터 선택 버튼
     private JPanel characterSelectionPanel;
     private Button bSelectCharacter;
+    
+    private JPanel characterSelectionOverlay;
+    private JPanel rightPanel;
 
     public LobbyScene() {
         super(DEFAULT); // 배경 이미지 설정 (RoomScene 스타일)
@@ -130,7 +133,8 @@ public class LobbyScene extends Scene implements NetworkListener {
         // 왼쪽: 채팅 로그
         mainContentPanel.add(createChatLogPanel(), Integer.valueOf(8));
         // 오른쪽: 정보 및 액션 버튼
-        mainContentPanel.add(createRightPanel(), Integer.valueOf(3));
+        rightPanel = createRightPanel();
+        mainContentPanel.add(rightPanel, Integer.valueOf(3));
         
         add(mainContentPanel);
     }
@@ -353,7 +357,7 @@ public class LobbyScene extends Scene implements NetworkListener {
         // 클릭 리스너 (나중에 구현)
         bSelectCharacter.addActionListener(e -> {
             System.out.println("캐릭터 선택 버튼 클릭됨");
-            // 캐릭터 선택 팝업이나 scene 띄우기 등의 로직 구현
+            showCharacterSelectionOverlay();
         });
         
         panel.add(bSelectCharacter, BorderLayout.CENTER);
@@ -466,6 +470,258 @@ public class LobbyScene extends Scene implements NetworkListener {
         section.add(bStart);
 
         return section;
+    }
+    
+    // ==========================================
+    //      캐릭터 선택 오버레이 패널
+    // ==========================================
+    
+    /**
+     * 캐릭터 선택 오버레이 표시
+     */
+    private void showCharacterSelectionOverlay() {
+    	if (characterSelectionOverlay != null) return;
+        
+    	setRightPanelButtonsEnabled(false);
+        
+        JPanel mainContentPanel = (JPanel) rightPanel.getParent();
+        int mainX = mainContentPanel.getX();
+        int mainY = mainContentPanel.getY();
+        
+        int relativeX = rightPanel.getX();
+        int relativeY = rightPanel.getY();
+        
+        int x = mainX + relativeX;
+        int y = mainY + relativeY;
+        int width = rightPanel.getWidth();
+        int height = rightPanel.getHeight();
+        
+        // 오버레이 패널 생성
+        characterSelectionOverlay = new JPanel(new BorderLayout(0, 15));
+        characterSelectionOverlay.setBackground(WHITE);
+        characterSelectionOverlay.setOpaque(true);
+        characterSelectionOverlay.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BLUE, 3),
+            BorderFactory.createEmptyBorder(20, 20, 20, 20)
+        ));
+        characterSelectionOverlay.setBounds(x, y, width, height);
+        
+        // 제목
+        JLabel titleLabel = new JLabel("캐릭터를 선택하세요", SwingConstants.CENTER);
+        titleLabel.setFont(getFont().deriveFont(Font.BOLD, 24f));
+        titleLabel.setForeground(BLACK);
+        characterSelectionOverlay.add(titleLabel, BorderLayout.NORTH);
+        
+        // 캐릭터 리스트 패널
+        JPanel characterListPanel = new JPanel();
+        characterListPanel.setLayout(new BoxLayout(characterListPanel, BoxLayout.Y_AXIS));
+        characterListPanel.setBackground(WHITE);
+        
+        // 선택된 캐릭터 추적
+        final int[] selectedCharacterIndex = {-1};
+        
+        // 캐릭터 이미지 버튼들 (임시로 5개 생성)
+        String[] characterNames = {"전사", "마법사", "궁수", "도적", "성기사"};
+        JPanel[] characterPanels = new JPanel[characterNames.length];
+        
+        for (int i = 0; i < characterNames.length; i++) {
+            final int index = i;
+            JPanel characterPanel = createCharacterItemPanel(characterNames[i], index);
+            characterPanels[i] = characterPanel;
+            
+            // 클릭 이벤트
+            characterPanel.addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override
+                public void mouseClicked(java.awt.event.MouseEvent e) {
+                    // 이전 선택 해제
+                    if (selectedCharacterIndex[0] >= 0) {
+                        characterPanels[selectedCharacterIndex[0]].setBackground(WHITE);
+                        characterPanels[selectedCharacterIndex[0]].setBorder(BorderFactory.createCompoundBorder(
+                            BorderFactory.createLineBorder(LIGHT_GRAY, 2),
+                            BorderFactory.createEmptyBorder(15, 15, 15, 15)
+                        ));
+                    }
+                    
+                    // 새로운 선택
+                    selectedCharacterIndex[0] = index;
+                    characterPanel.setBackground(new Color(220, 240, 255)); // 연한 파란색
+                    characterPanel.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(BLUE, 3),
+                        BorderFactory.createEmptyBorder(14, 14, 14, 14)
+                    ));
+                }
+                
+                @Override
+                public void mouseEntered(java.awt.event.MouseEvent e) {
+                    if (selectedCharacterIndex[0] != index) {
+                        characterPanel.setBackground(new Color(245, 245, 245));
+                    }
+                }
+                
+                @Override
+                public void mouseExited(java.awt.event.MouseEvent e) {
+                    if (selectedCharacterIndex[0] != index) {
+                        characterPanel.setBackground(WHITE);
+                    }
+                }
+            });
+            
+            characterListPanel.add(characterPanel);
+            characterListPanel.add(Box.createVerticalStrut(10));
+        }
+        
+        // 스크롤 패널
+        JScrollPane scrollPane = new JScrollPane(characterListPanel);
+        scrollPane.setBorder(BorderFactory.createLineBorder(LIGHT_GRAY, 1));
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        characterSelectionOverlay.add(scrollPane, BorderLayout.CENTER);
+        
+        // 버튼 패널
+        JPanel buttonPanel = new JPanel(new BorderLayout(10, 0));
+        buttonPanel.setOpaque(false);
+        
+        Button cancelButton = new Button("취소");
+        cancelButton.setFont(getFont().deriveFont(16f));
+        cancelButton.setButtonColors(LIGHT_GRAY, WHITE, GRAY);
+        // 취소 버튼 - 오버레이 제거
+        cancelButton.addActionListener(e -> hideCharacterSelectionOverlay());
+        
+        Button confirmButton = new Button("선택 완료");
+        confirmButton.setFont(getFont().deriveFont(Font.BOLD, 16f));
+        confirmButton.setButtonColors(BLUE, WHITE, new Color(0, 100, 200));
+        confirmButton.addActionListener(e -> {
+            if (selectedCharacterIndex[0] >= 0) {
+                // 캐릭터 선택 완료 처리
+                System.out.println("선택된 캐릭터: " + characterNames[selectedCharacterIndex[0]]);
+                // TODO: 서버에 캐릭터 선택 정보 전송
+                // 선택 완료 후 오버레이 제거
+                hideCharacterSelectionOverlay();
+            } else {
+                JOptionPane.showMessageDialog(LobbyScene.this, "캐릭터를 선택해주세요!", "알림", JOptionPane.WARNING_MESSAGE);
+            }
+        });
+        
+        buttonPanel.add(cancelButton, BorderLayout.WEST);
+        buttonPanel.add(confirmButton, BorderLayout.EAST);
+        characterSelectionOverlay.add(buttonPanel, BorderLayout.SOUTH);
+        
+        // Scene에 오버레이 추가
+        add(characterSelectionOverlay, Integer.valueOf(0));
+        setComponentZOrder(characterSelectionOverlay, 0); // 맨 앞으로
+        revalidate();
+        repaint();
+    }
+    
+    /**
+     * 캐릭터 선택 오버레이 숨기기
+     */
+    private void hideCharacterSelectionOverlay() {
+        if (characterSelectionOverlay != null) {
+            remove(characterSelectionOverlay);
+            characterSelectionOverlay = null;
+            
+            setRightPanelButtonsEnabled(true);
+            
+            revalidate();
+            repaint();
+        }
+    }
+    
+    /**
+     * 캐릭터 아이템 패널 생성
+     */
+    private JPanel createCharacterItemPanel(String characterName, int index) {
+        JPanel panel = new JPanel(new BorderLayout(15, 0));
+        panel.setBackground(WHITE);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(LIGHT_GRAY, 2),
+            BorderFactory.createEmptyBorder(15, 15, 15, 15)
+        ));
+        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 120));
+        panel.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        
+        // 이미지 영역 (임시 플레이스홀더)
+        JPanel imagePanel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                g.setColor(LIGHT_GRAY);
+                g.fillRect(0, 0, getWidth(), getHeight());
+                g.setColor(GRAY);
+                g.drawString("IMG", 20, 50);
+            }
+        };
+        imagePanel.setPreferredSize(new Dimension(80, 80));
+        imagePanel.setBackground(LIGHT_GRAY);
+        panel.add(imagePanel, BorderLayout.WEST);
+        
+        // 캐릭터 정보 영역
+        JPanel infoPanel = new JPanel();
+        infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
+        infoPanel.setOpaque(false);
+        
+        JLabel nameLabel = new JLabel(characterName);
+        nameLabel.setFont(getFont().deriveFont(Font.BOLD, 18f));
+        nameLabel.setForeground(BLACK);
+        nameLabel.setAlignmentX(LEFT_ALIGNMENT);
+        
+        JLabel descLabel = new JLabel("<html>캐릭터 #" + (index + 1) + "<br>특징: 균형잡힌 능력치</html>");
+        descLabel.setFont(getFont().deriveFont(14f));
+        descLabel.setForeground(GRAY);
+        descLabel.setAlignmentX(LEFT_ALIGNMENT);
+        
+        infoPanel.add(nameLabel);
+        infoPanel.add(Box.createVerticalStrut(5));
+        infoPanel.add(descLabel);
+        
+        panel.add(infoPanel, BorderLayout.CENTER);
+        
+        return panel;
+    }
+    
+    /**
+     * 오른쪽 패널의 모든 버튼 활성화/비활성화
+     */
+    private void setRightPanelButtonsEnabled(boolean enabled) {
+        NetworkManager nm = getNetworkManager();
+        boolean isHost = (nm != null && hostId != null) ? nm.getPlayerId().equals(hostId) : false;
+        
+        // 역할 선택 버튼
+        if (bSelectKnight != null) {
+            bSelectKnight.setEnabled(enabled && myRole == ROLE_NONE && !isRoleAlreadyTaken(ROLE_KNIGHT));
+        }
+        if (bSelectHorse != null) {
+            bSelectHorse.setEnabled(enabled && myRole == ROLE_NONE && !isRoleAlreadyTaken(ROLE_HORSE));
+        }
+        
+        // 캐릭터 선택 버튼
+        if (bSelectCharacter != null) {
+            bSelectCharacter.setEnabled(enabled && myRole != ROLE_NONE);
+        }
+        
+        // 준비 버튼
+        if (bReady != null) {
+            bReady.setEnabled(enabled && !isHost);
+        }
+        
+        // 시작 버튼
+        if (bStart != null) {
+            bStart.setEnabled(enabled && isHost && canStart);
+        }
+    }
+    
+    private boolean isRoleAlreadyTaken(int role) {
+        if (players == null) return false;
+        NetworkManager nm = getNetworkManager();
+        if (nm == null) return false;
+        
+        String myId = nm.getPlayerId();
+        for (PlayerInfo p : players) {
+            if (!p.getPlayerId().equals(myId) && p.getRole() == role) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // ==========================================
