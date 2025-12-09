@@ -344,4 +344,11 @@ public class NetworkManager {
         this.listener = listener;
         System.out.println("NetworkListener set: " + (listener != null ? listener.getClass().getSimpleName() : "null"));
     }
+    
+    public void removeListener(NetworkListener target) {
+        if (this.listener == target) {
+            this.listener = null;
+            System.out.println("NetworkListener removed.");
+        }
+    }
 }

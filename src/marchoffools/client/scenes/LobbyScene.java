@@ -19,6 +19,7 @@ import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JLabel;
+import javax.swing.JLayeredPane;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -69,11 +70,11 @@ public class LobbyScene extends Scene implements NetworkListener {
     private JPanel pRoomIdContent, pHiddenIndicator;
     private boolean roomIdVisible = false;
     
-    // 플레이어 슬롯 패널 (최대 2명)
-    private JPanel player1Entry;
-    private JPanel player2Entry;
+    // 플레이어 슬롯 패널 
+    private PlayerSlot slot1;
+    private PlayerSlot slot2;
 
-    // 역할 선택 버튼 (자신만 보임)
+    // 역할 선택 버튼 
     private JPanel roleSelectionPanel;
     private Button bSelectKnight;
     private Button bSelectHorse;
@@ -84,9 +85,46 @@ public class LobbyScene extends Scene implements NetworkListener {
     
     private JPanel characterSelectionOverlay;
     private JPanel rightPanel;
+    
+    private JLayeredPane layeredPane;
+    private JPanel mainLayerPanel;
+    
+    private static final String[] KNIGHT_NAMES = {"워리어", "매지션", "아처"};
+    private static final String[] KNIGHT_DESCS = {"강력한 근접 공격", "다양한 마법 스킬", "원거리 제압 특화"};
 
+    private static final String[] HORSE_NAMES = {"날쌘돌이", "철벽이", "유니콘"};
+    private static final String[] HORSE_DESCS = {"이동 속도 보너스", "높은 체력과 방어력", "특수 점프 능력"};
+
+    private static final javax.swing.border.Border SELECTED_BORDER = BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BLUE, 3),
+            BorderFactory.createEmptyBorder(14, 14, 14, 14)
+        );
+
+        private static final javax.swing.border.Border UNSELECTED_BORDER = BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(LIGHT_GRAY, 2),
+            BorderFactory.createEmptyBorder(15, 15, 15, 15)
+        );
+
+        private static final Color SELECTED_BG = new Color(220, 240, 255);
+        private static final Color HOVER_BG = new Color(245, 245, 245);
+        private static final Color NORMAL_BG = WHITE;
+        
     public LobbyScene() {
         super(DEFAULT); // 배경 이미지 설정 (RoomScene 스타일)
+        
+        setLayout(new BorderLayout());
+        
+        layeredPane = new JLayeredPane();
+        layeredPane.setBounds(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+        add(layeredPane, BorderLayout.CENTER);
+        
+        // 기본 UI들이 담길 패널 생성
+        mainLayerPanel = new JPanel(null); // 절대 좌표 사용을 위해 null layout
+        mainLayerPanel.setOpaque(false);
+        mainLayerPanel.setBounds(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+        
+        // mainLayerPanel을 가장 아래 레이어에 추가
+        layeredPane.add(mainLayerPanel, JLayeredPane.DEFAULT_LAYER);
         
         // 전체 레이아웃 구성
         createTitleSection();
@@ -106,7 +144,7 @@ public class LobbyScene extends Scene implements NetworkListener {
         lTitle.setForeground(BLACK);
         lTitle.setSize(lTitle.getPreferredSize().width + 42, lTitle.getPreferredSize().height);
         lTitle.setLocation(72, 48);
-        add(lTitle);
+        mainLayerPanel.add(lTitle);
     }
     
     private void createExitButton() {
@@ -115,7 +153,7 @@ public class LobbyScene extends Scene implements NetworkListener {
         bExit.setSize(100, 50); 
         bExit.setLocation(WINDOW_WIDTH - bExit.getWidth() - 72, 40);
         bExit.addActionListener(e -> handleExit());
-        add(bExit);
+        mainLayerPanel.add(bExit);
     }
     
     private void createMainContent() {
@@ -136,7 +174,7 @@ public class LobbyScene extends Scene implements NetworkListener {
         rightPanel = createRightPanel();
         mainContentPanel.add(rightPanel, Integer.valueOf(3));
         
-        add(mainContentPanel);
+        mainLayerPanel.add(mainContentPanel);
     }
     
     private void applySectionStyle(JPanel panel) {
@@ -266,13 +304,14 @@ public class LobbyScene extends Scene implements NetworkListener {
         section.add(Box.createVerticalStrut(15));
 
         // 플레이어 1 슬롯
-        player1Entry = createPlayerEntry("Waiting...", false, "None");
-        section.add(player1Entry);
+        slot1 = new PlayerSlot();
+        section.add(slot1.getPanel()); // getPanel()로 JPanel을 꺼내서 붙임
+        
         section.add(Box.createVerticalStrut(10));
 
         // 플레이어 2 슬롯
-        player2Entry = createPlayerEntry("Waiting...", false, "None");
-        section.add(player2Entry);
+        slot2 = new PlayerSlot();
+        section.add(slot2.getPanel());
         
         section.add(Box.createVerticalStrut(15));
         
@@ -287,33 +326,6 @@ public class LobbyScene extends Scene implements NetworkListener {
         section.add(characterSelectionPanel);
 
         return section;
-    }
-    
-    private JPanel createPlayerEntry(String name, boolean isReady, String role) {
-        JPanel entry = new JPanel(new BorderLayout(10, 0));
-        entry.setOpaque(false);
-        entry.setMaximumSize(new Dimension(Short.MAX_VALUE, 40));
-        entry.setAlignmentX(LEFT_ALIGNMENT);
-
-        // 이름 + 역할
-        String labelText = String.format("<html>%s <font color='#888888' size='3'>[%s]</font></html>", name, role);
-        JLabel lName = new JLabel(labelText);
-        lName.setFont(getFont().deriveFont(16f));
-        lName.setForeground(BLACK);
-        entry.add(lName, BorderLayout.CENTER);
-
-        // 준비 상태
-        JLabel lReadyStatus = new JLabel(isReady ? "Ready" : "Wait", SwingConstants.CENTER);
-        lReadyStatus.setFont(getFont().deriveFont(12f));
-        lReadyStatus.setForeground(isReady ? WHITE : BLACK);
-        lReadyStatus.setBackground(isReady ? GREEN : LIGHT_GRAY);
-        lReadyStatus.setOpaque(true);
-        lReadyStatus.setPreferredSize(new Dimension(60, 24));
-        lReadyStatus.setBorder(BorderFactory.createLineBorder(LIGHT_GRAY, 1));
-        
-        entry.add(lReadyStatus, BorderLayout.EAST);
-        
-        return entry;
     }
     
     private JPanel createRoleSelectionPanel() {
@@ -481,6 +493,23 @@ public class LobbyScene extends Scene implements NetworkListener {
      */
     private void showCharacterSelectionOverlay() {
     	if (characterSelectionOverlay != null) return;
+    	
+    	String[] targetNames;
+        String[] targetDescs;
+        String roleTitle;
+
+        if (myRole == ROLE_KNIGHT) {
+            targetNames = KNIGHT_NAMES;
+            targetDescs = KNIGHT_DESCS;
+            roleTitle = "기사(Knight) 캐릭터 선택";
+        } else if (myRole == ROLE_HORSE) {
+            targetNames = HORSE_NAMES;
+            targetDescs = HORSE_DESCS;
+            roleTitle = "말(Horse) 캐릭터 선택";
+        } else {
+            JOptionPane.showMessageDialog(this, "먼저 역할을 선택해주세요.");
+            return;
+        }
         
     	setRightPanelButtonsEnabled(false);
         
@@ -507,8 +536,8 @@ public class LobbyScene extends Scene implements NetworkListener {
         characterSelectionOverlay.setBounds(x, y, width, height);
         
         // 제목
-        JLabel titleLabel = new JLabel("캐릭터를 선택하세요", SwingConstants.CENTER);
-        titleLabel.setFont(getFont().deriveFont(Font.BOLD, 24f));
+        JLabel titleLabel = new JLabel(roleTitle, SwingConstants.CENTER);
+        titleLabel.setFont(getFont().deriveFont(Font.BOLD, 22f));
         titleLabel.setForeground(BLACK);
         characterSelectionOverlay.add(titleLabel, BorderLayout.NORTH);
         
@@ -520,51 +549,20 @@ public class LobbyScene extends Scene implements NetworkListener {
         // 선택된 캐릭터 추적
         final int[] selectedCharacterIndex = {-1};
         
-        // 캐릭터 이미지 버튼들 (임시로 5개 생성)
-        String[] characterNames = {"전사", "마법사", "궁수", "도적", "성기사"};
-        JPanel[] characterPanels = new JPanel[characterNames.length];
+        JPanel[] characterPanels = new JPanel[targetNames.length];
         
-        for (int i = 0; i < characterNames.length; i++) {
-            final int index = i;
-            JPanel characterPanel = createCharacterItemPanel(characterNames[i], index);
+        for (int i = 0; i < targetNames.length; i++) {
+            // 1. 패널 생성
+            JPanel characterPanel = createCharacterItemPanel(targetNames[i], targetDescs[i], i);
             characterPanels[i] = characterPanel;
             
-            // 클릭 이벤트
-            characterPanel.addMouseListener(new java.awt.event.MouseAdapter() {
-                @Override
-                public void mouseClicked(java.awt.event.MouseEvent e) {
-                    // 이전 선택 해제
-                    if (selectedCharacterIndex[0] >= 0) {
-                        characterPanels[selectedCharacterIndex[0]].setBackground(WHITE);
-                        characterPanels[selectedCharacterIndex[0]].setBorder(BorderFactory.createCompoundBorder(
-                            BorderFactory.createLineBorder(LIGHT_GRAY, 2),
-                            BorderFactory.createEmptyBorder(15, 15, 15, 15)
-                        ));
-                    }
-                    
-                    // 새로운 선택
-                    selectedCharacterIndex[0] = index;
-                    characterPanel.setBackground(new Color(220, 240, 255)); // 연한 파란색
-                    characterPanel.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(BLUE, 3),
-                        BorderFactory.createEmptyBorder(14, 14, 14, 14)
-                    ));
-                }
-                
-                @Override
-                public void mouseEntered(java.awt.event.MouseEvent e) {
-                    if (selectedCharacterIndex[0] != index) {
-                        characterPanel.setBackground(new Color(245, 245, 245));
-                    }
-                }
-                
-                @Override
-                public void mouseExited(java.awt.event.MouseEvent e) {
-                    if (selectedCharacterIndex[0] != index) {
-                        characterPanel.setBackground(WHITE);
-                    }
-                }
-            });
+            // 2. 초기 스타일 적용 (선택 안됨, 호버 아님)
+            updateItemStyle(characterPanel, false, false);
+            
+            // 3. [최적화] 익명 클래스 대신 명시적 리스너 클래스 사용
+            characterPanel.addMouseListener(
+                new CharacterItemListener(i, characterPanel, selectedCharacterIndex, characterPanels)
+            );
             
             characterListPanel.add(characterPanel);
             characterListPanel.add(Box.createVerticalStrut(10));
@@ -592,7 +590,7 @@ public class LobbyScene extends Scene implements NetworkListener {
         confirmButton.addActionListener(e -> {
             if (selectedCharacterIndex[0] >= 0) {
                 // 캐릭터 선택 완료 처리
-                System.out.println("선택된 캐릭터: " + characterNames[selectedCharacterIndex[0]]);
+                System.out.println("선택된 캐릭터: " + targetNames[selectedCharacterIndex[0]]);
                 // TODO: 서버에 캐릭터 선택 정보 전송
                 // 선택 완료 후 오버레이 제거
                 hideCharacterSelectionOverlay();
@@ -605,9 +603,8 @@ public class LobbyScene extends Scene implements NetworkListener {
         buttonPanel.add(confirmButton, BorderLayout.EAST);
         characterSelectionOverlay.add(buttonPanel, BorderLayout.SOUTH);
         
-        // Scene에 오버레이 추가
-        add(characterSelectionOverlay, Integer.valueOf(0));
-        setComponentZOrder(characterSelectionOverlay, 0); // 맨 앞으로
+        layeredPane.add(characterSelectionOverlay, JLayeredPane.POPUP_LAYER);
+        
         revalidate();
         repaint();
     }
@@ -617,7 +614,7 @@ public class LobbyScene extends Scene implements NetworkListener {
      */
     private void hideCharacterSelectionOverlay() {
         if (characterSelectionOverlay != null) {
-            remove(characterSelectionOverlay);
+        	layeredPane.remove(characterSelectionOverlay);
             characterSelectionOverlay = null;
             
             setRightPanelButtonsEnabled(true);
@@ -627,20 +624,29 @@ public class LobbyScene extends Scene implements NetworkListener {
         }
     }
     
+    private void updateItemStyle(JPanel panel, boolean isSelected, boolean isHover) {
+        if (isSelected) {
+            panel.setBackground(SELECTED_BG);
+            panel.setBorder(SELECTED_BORDER);
+        } else if (isHover) {
+            panel.setBackground(HOVER_BG);
+            panel.setBorder(UNSELECTED_BORDER);
+        } else {
+            panel.setBackground(NORMAL_BG);
+            panel.setBorder(UNSELECTED_BORDER);
+        }
+    }
+    
     /**
      * 캐릭터 아이템 패널 생성
      */
-    private JPanel createCharacterItemPanel(String characterName, int index) {
+    private JPanel createCharacterItemPanel(String characterName, String descText, int index) {
         JPanel panel = new JPanel(new BorderLayout(15, 0));
         panel.setBackground(WHITE);
-        panel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(LIGHT_GRAY, 2),
-            BorderFactory.createEmptyBorder(15, 15, 15, 15)
-        ));
         panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 120));
         panel.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         
-        // 이미지 영역 (임시 플레이스홀더)
+        // 이미지 영역 
         JPanel imagePanel = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -665,7 +671,8 @@ public class LobbyScene extends Scene implements NetworkListener {
         nameLabel.setForeground(BLACK);
         nameLabel.setAlignmentX(LEFT_ALIGNMENT);
         
-        JLabel descLabel = new JLabel("<html>캐릭터 #" + (index + 1) + "<br>특징: 균형잡힌 능력치</html>");
+        // 넘겨받은 설명 텍스트 적용
+        JLabel descLabel = new JLabel("<html>" + descText + "</html>");
         descLabel.setFont(getFont().deriveFont(14f));
         descLabel.setForeground(GRAY);
         descLabel.setAlignmentX(LEFT_ALIGNMENT);
@@ -684,7 +691,8 @@ public class LobbyScene extends Scene implements NetworkListener {
      */
     private void setRightPanelButtonsEnabled(boolean enabled) {
         NetworkManager nm = getNetworkManager();
-        boolean isHost = (nm != null && hostId != null) ? nm.getPlayerId().equals(hostId) : false;
+        String myId = (nm != null) ? nm.getPlayerId() : null;
+        boolean isHost = (myId != null && hostId != null) && myId.equals(hostId);
         
         // 역할 선택 버튼
         if (bSelectKnight != null) {
@@ -701,7 +709,7 @@ public class LobbyScene extends Scene implements NetworkListener {
         
         // 준비 버튼
         if (bReady != null) {
-            bReady.setEnabled(enabled && !isHost);
+            bReady.setEnabled(enabled);
         }
         
         // 시작 버튼
@@ -732,6 +740,11 @@ public class LobbyScene extends Scene implements NetworkListener {
      * 서버로부터 RoomInfoMessage 수신 시 호출
      */
     public void updateRoomInfo(RoomInfoMessage msg) {
+    	if (!SwingUtilities.isEventDispatchThread()) {
+            SwingUtilities.invokeLater(() -> updateRoomInfo(msg));
+            return;
+        }
+    	
         this.roomId = msg.getRoomId();
         this.hostId = msg.getHostId();
         this.players = msg.getPlayers();
@@ -764,7 +777,7 @@ public class LobbyScene extends Scene implements NetworkListener {
         }
         
         // ============================================================
-        // ★ 서버 데이터(me)를 기반으로 내 UI 상태 강제 동기화
+        // 서버 데이터(me)를 기반으로 내 UI 상태 강제 동기화
         // ============================================================
         if (me != null) {
             this.isReady = me.isReady(); 
@@ -803,8 +816,8 @@ public class LobbyScene extends Scene implements NetworkListener {
         }
 
         // 3. 플레이어 목록(이름 옆 역할, Ready 상태 표시) 업데이트
-        updatePlayerEntry(player1Entry, me);    // 내 정보
-        updatePlayerEntry(player2Entry, other); // 상대방 정보
+        slot1.update(me, hostId);
+        slot2.update(other, hostId);
         
         // 4. 시작 버튼 상태 갱신 (방장 전용)
         if (nm != null) {
@@ -821,39 +834,6 @@ public class LobbyScene extends Scene implements NetworkListener {
                 bStart.setText("Waiting...");
             }
         }
-    }
-
-    private void updatePlayerEntry(JPanel entryPanel, PlayerInfo p) {
-        // 내부 컴포넌트 찾기 (순서 의존: 0=NameLabel, 1=ReadyLabel)
-        JLabel lName = (JLabel) entryPanel.getComponent(0);
-        JLabel lStatus = (JLabel) entryPanel.getComponent(1);
-        
-        if (p != null) {
-            // 플레이어 정보가 있을 때
-            String rName = getRoleName(p.getRole());
-            
-            // 이름 및 역할 업데이트
-            String displayName = p.getPlayerName();
-            if (p.getPlayerId().equals(hostId)) displayName = "👑 " + displayName;
-            
-            lName.setText(String.format("<html><nobr>%s <font color='#888888' size='3'>[%s]</font></nobr></html>", displayName, rName));
-            
-            // 준비 상태 업데이트
-            boolean ready = p.isReady();
-            lStatus.setText(ready ? "Ready" : "Wait");
-            lStatus.setBackground(ready ? GREEN : LIGHT_GRAY);
-            lStatus.setForeground(ready ? WHITE : BLACK);
-            
-        } else {
-            // 빈 슬롯
-            lName.setText("Waiting...");
-            lStatus.setText("Empty");
-            lStatus.setBackground(LIGHT_GRAY);
-            lStatus.setForeground(GRAY);
-        }
-        
-        entryPanel.revalidate();
-        entryPanel.repaint();
     }
 
     /**
@@ -1005,6 +985,8 @@ public class LobbyScene extends Scene implements NetworkListener {
         SwingUtilities.invokeLater(() -> {
             System.out.println("Game starting! Switching to GameScene...");
             
+            hideCharacterSelectionOverlay();
+            
             NetworkManager nm = getNetworkManager();
             if (nm == null || players == null || players.size() != 2) {
                 System.err.println("Cannot start game: invalid state");
@@ -1036,7 +1018,22 @@ public class LobbyScene extends Scene implements NetworkListener {
                 opponent.getRole()
             );
             
+            if (nm != null) {
+                nm.removeListener(this); 
+            }
+            
+            this.removeAll(); 
+            
+            java.awt.Container parent = this.getParent();
+            if (parent != null) {
+                parent.remove(this);
+                parent.revalidate();
+                parent.repaint();
+            }
+            
             switchTo(gameScene);
+            
+            gameScene.requestFocusInWindow();
         });
     }
     
@@ -1047,12 +1044,141 @@ public class LobbyScene extends Scene implements NetworkListener {
     @Override
     public void onRoomInfo(RoomInfoMessage msg) {
         System.out.println("LobbyScene received RoomInfo");
-        updateRoomInfo(msg);  // 기존 메서드 재사용
+        SwingUtilities.invokeLater(() -> {
+            updateRoomInfo(msg);
+        });
     }
     
     @Override
     public void onChat(ChatMessage msg) {
         System.out.println("LobbyScene received Chat");
-        receiveChat(msg);  // 기존 메서드 재사용
+        SwingUtilities.invokeLater(() -> {
+            receiveChat(msg);
+        });
     }
+    
+    // ==========================================
+    //       PlayerSlot
+    // ==========================================
+    private class PlayerSlot {
+        private JPanel panel;
+        private JLabel lName;
+        private JLabel lStatus;
+
+        public PlayerSlot() {
+            // 1. 패널 생성 및 설정
+            panel = new JPanel(new BorderLayout(10, 0));
+            panel.setOpaque(false);
+            panel.setMaximumSize(new Dimension(Short.MAX_VALUE, 40));
+            panel.setAlignmentX(LEFT_ALIGNMENT);
+
+            // 2. 이름 라벨 생성 (초기값)
+            lName = new JLabel("Waiting...");
+            lName.setFont(getFont().deriveFont(16f));
+            lName.setForeground(BLACK);
+            panel.add(lName, BorderLayout.CENTER);
+
+            // 3. 상태 라벨 생성 (초기값)
+            lStatus = new JLabel("Wait", SwingConstants.CENTER);
+            lStatus.setFont(getFont().deriveFont(12f));
+            lStatus.setOpaque(true);
+            lStatus.setPreferredSize(new Dimension(60, 24));
+            lStatus.setBorder(BorderFactory.createLineBorder(LIGHT_GRAY, 1));
+            
+            // 초기 상태 스타일 적용
+            resetToEmpty();
+            
+            panel.add(lStatus, BorderLayout.EAST);
+        }
+
+        // 외부에서 패널을 가져다 쓰기 위한 Getter
+        public JPanel getPanel() {
+            return panel;
+        }
+
+        // 데이터 갱신 메서드 (핵심 로직 이동)
+        public void update(PlayerInfo p, String currentHostId) {
+            if (p != null) {
+                // 플레이어 정보가 있을 때
+                String rName = getRoleName(p.getRole());
+                String displayName = p.getPlayerName();
+                
+                // 방장 표시 로직
+                if (p.getPlayerId().equals(currentHostId)) {
+                    displayName = "👑 " + displayName;
+                }
+                
+                // 이름 및 역할 업데이트
+                lName.setText(String.format("<html><nobr>%s <font color='#888888' size='3'>[%s]</font></nobr></html>", displayName, rName));
+                
+                // 준비 상태 업데이트
+                boolean ready = p.isReady();
+                lStatus.setText(ready ? "Ready" : "Wait");
+                lStatus.setBackground(ready ? GREEN : LIGHT_GRAY);
+                lStatus.setForeground(ready ? WHITE : BLACK);
+            } else {
+                // 빈 슬롯일 때
+                resetToEmpty();
+            }
+            
+            panel.revalidate();
+            panel.repaint();
+        }
+        
+        // 빈 슬롯 상태로 초기화하는 헬퍼 메서드
+        private void resetToEmpty() {
+            lName.setText("<html><font color='#888888'>Waiting...</font></html>");
+            lStatus.setText("Empty");
+            lStatus.setBackground(LIGHT_GRAY);
+            lStatus.setForeground(GRAY);
+        }
+    }
+    
+    // 캐릭터 아이템 마우스 이벤트 리스너 
+    private class CharacterItemListener extends java.awt.event.MouseAdapter {
+        private final int index;
+        private final JPanel panel;
+        private final int[] selectedIndexRef; // 선택된 인덱스 배열 참조
+        private final JPanel[] allPanels;     // 전체 패널 배열 (다른 패널 초기화용)
+
+        public CharacterItemListener(int index, JPanel panel, int[] selectedIndexRef, JPanel[] allPanels) {
+            this.index = index;
+            this.panel = panel;
+            this.selectedIndexRef = selectedIndexRef;
+            this.allPanels = allPanels;
+        }
+
+        @Override
+        public void mouseClicked(java.awt.event.MouseEvent e) {
+            // 1. 이전에 선택된 패널이 있다면 스타일 초기화
+            int prevIndex = selectedIndexRef[0];
+            if (prevIndex >= 0 && prevIndex < allPanels.length) {
+                // 이전 패널: 선택 X, 호버 X 상태로 복구
+                updateItemStyle(allPanels[prevIndex], false, false);
+            }
+
+            // 2. 현재 선택 인덱스 갱신
+            selectedIndexRef[0] = index;
+
+            // 3. 현재 패널 선택 스타일 적용
+            updateItemStyle(panel, true, false);
+        }
+
+        @Override
+        public void mouseEntered(java.awt.event.MouseEvent e) {
+            // 선택된 상태가 아닐 때만 호버 효과
+            if (selectedIndexRef[0] != index) {
+                updateItemStyle(panel, false, true);
+            }
+        }
+
+        @Override
+        public void mouseExited(java.awt.event.MouseEvent e) {
+            // 선택된 상태가 아닐 때만 원래대로 복구
+            if (selectedIndexRef[0] != index) {
+                updateItemStyle(panel, false, false);
+            }
+        }
+    }
+    
 }
