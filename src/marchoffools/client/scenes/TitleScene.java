@@ -38,7 +38,7 @@ public class TitleScene extends Scene {
         p.add(bSelectRoom);
 
 		Button bStatus = new Button("점수 통계");
-//		bStatus.addActionListener(e -> getCallback().switchScene(new WordsScene()));
+		bStatus.addActionListener(e -> switchTo(new ScoreScene()));
         p.add(bStatus);
         
 		Button bSettings = new Button("설정");
