@@ -42,7 +42,7 @@ public class TitleScene extends Scene {
         p.add(bStatus);
         
 		Button bSettings = new Button("설정");
-//		bSettings.addActionListener(e -> getCallback().switchScene(new WordsScene()));
+		bSettings.addActionListener(e -> switchTo(new SettingScene()));
         p.add(bSettings);
         
 		Button bExit = new Button("나가기");
