@@ -1,5 +1,7 @@
 package marchoffools.client.scenes;
 
+import marchoffools.client.core.Assets;
+import marchoffools.client.core.AudioManager;
 import marchoffools.client.core.Scene;
 import marchoffools.client.ui.Button;
 
@@ -52,6 +54,8 @@ public class TitleScene extends Scene {
         add(p);
         
 		setFocusable(false);
+		
+		AudioManager.getInstance().playBgm(Assets.Sounds.BGM_LOBBY);
     }
 
 	@Override
