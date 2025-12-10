@@ -971,7 +971,7 @@ public class LobbyScene extends Scene implements NetworkListener {
     
     @Override
     public void paintComponent(Graphics g) {
-        super.paintComponent(g); // 배경 이미지
+        super.paintComponent(g); 
         
         g.setColor(TRANSLUCENT_WHITE);
         g.fillRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -989,49 +989,37 @@ public class LobbyScene extends Scene implements NetworkListener {
             
             NetworkManager nm = getNetworkManager();
             if (nm == null || players == null || players.size() != 2) {
-                System.err.println("Cannot start game: invalid state");
                 return;
             }
+            
+            nm.removeListener(this);
             
             String myId = nm.getPlayerId();
             PlayerInfo me = null;
             PlayerInfo opponent = null;
-            
-            // 나와 상대방 정보 찾기
             for (PlayerInfo p : players) {
-                if (p.getPlayerId().equals(myId)) {
-                    me = p;
-                } else {
-                    opponent = p;
-                }
+                if (p.getPlayerId().equals(myId)) me = p;
+                else opponent = p;
             }
-            
-            if (me == null || opponent == null) {
-                System.err.println("Cannot find player info");
-                return;
-            }
+            if (me == null || opponent == null) return;
             
             GameScene gameScene = new GameScene(
-                me.getPlayerName(),
-                opponent.getPlayerName(),
-                me.getRole(),
-                opponent.getRole()
+                me.getPlayerName(), opponent.getPlayerName(), me.getRole(), opponent.getRole()
             );
             
-            if (nm != null) {
-                nm.removeListener(this); 
-            }
-            
-            this.removeAll(); 
-            
-            java.awt.Container parent = this.getParent();
-            if (parent != null) {
-                parent.remove(this);
-                parent.revalidate();
-                parent.repaint();
-            }
-            
             switchTo(gameScene);
+            
+            SwingUtilities.invokeLater(() -> {
+                this.setVisible(false);
+                this.removeAll();
+                
+                java.awt.Container parent = this.getParent();
+                if (parent != null) {
+                    parent.remove(this);
+                    parent.revalidate();
+                    parent.repaint();
+                }
+            });
             
             gameScene.requestFocusInWindow();
         });
