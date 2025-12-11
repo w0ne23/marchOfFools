@@ -3,18 +3,17 @@ package marchoffools.client.scenes;
 import static marchoffools.client.core.Assets.Backgrounds.DEFAULT;
 import static marchoffools.client.core.Assets.Colors.*;
 import static marchoffools.client.core.Config.*;
-import marchoffools.client.core.ResourceManager;
 import static marchoffools.common.message.RoomActionMessage.*;
 
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
-import java.awt.Image;
-import java.awt.event.MouseAdapter; 
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -48,7 +47,6 @@ public class GameScene extends Scene implements NetworkListener {
     private GameCanvas gameCanvas;
     
     private int score = 0;
-    private javax.swing.Timer gameTimer;
     private int playTime = 0;
     
     private JPanel currentEmojiSelector = null;
@@ -59,15 +57,14 @@ public class GameScene extends Scene implements NetworkListener {
     private Button myEmojiButton;
     private Button opponentEmojiButton;
     
-    private Thread gameThread;
-    private volatile boolean isRunning = false;
-    private final int FPS = 60;                
-    private final int TARGET_TIME = 1000 / FPS;
+    // 스킬 버튼들
+    private Button[] skillButtons = new Button[6];
+    
+    // 슬라이드 키 상태
+    private boolean isSlideKeyPressed = false;
 
     public GameScene(String myName, String opponentName, int myRole, int opponentRole) {
         super(DEFAULT);
-        
-        marchoffools.client.core.ResourceManager.loadAllResources();
         
         this.myName = myName;
         this.opponentName = opponentName;
@@ -90,72 +87,16 @@ public class GameScene extends Scene implements NetworkListener {
         createEmotionSection();
         createGameCanvas();
         createSkillUseSection();
+        setupKeyBindings();
         
         System.out.println("GameScene initialized:");
         System.out.println("  My Name: " + myName + " [" + getRoleName(myRole) + "]");
         System.out.println("  Opponent: " + opponentName + " [" + getRoleName(opponentRole) + "]");
-        
-        startGameLoop();
     }
     
     @Override
     public void onExit() {
-    	stopGameLoop();
-    	stopGameTimer();
         super.onExit();
-    }
-    
-    // ==========================================
-    //        게임 루프 로직 
-    // ==========================================
-    
-    private void startGameLoop() {
-        if (isRunning) return;
-        isRunning = true;
-        
-        gameThread = new Thread(() -> {
-            System.out.println("Game Loop Started");
-            while (isRunning) {
-            	long startTime = System.currentTimeMillis();
-                
-                // 1. 논리 업데이트 (위치 이동, 충돌 체크 등)
-                updateGame();
-                
-                // 2. 화면 갱신 (paintComponent 호출)
-                repaint();
-                
-                // 3. 프레임 속도 조절 (Sleep)
-                long elapsedTime = System.currentTimeMillis() - startTime;
-                long sleepTime = TARGET_TIME - elapsedTime;
-                
-                if (sleepTime > 0) {
-                    try {
-                        Thread.sleep(sleepTime);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        });
-        gameThread.start();
-    }
-    
-    private void stopGameLoop() {
-        isRunning = false;
-        if (gameThread != null) {
-            try {
-                gameThread.join(100); // 스레드 종료 대기
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-    
-    private void updateGame() {
-        // 게임 캔버스 내부의 객체들(장애물, 배경 등) 업데이트 위임
-        if (gameCanvas != null) {
-            gameCanvas.update();
-        }
     }
     
     // ==========================================
@@ -163,7 +104,7 @@ public class GameScene extends Scene implements NetworkListener {
     // ==========================================
     
     private void createScoreTimeSection() {
-    	JPanel topPanel = new JPanel();
+        JPanel topPanel = new JPanel();
         topPanel.setLayout(null); 
         topPanel.setOpaque(false);
         topPanel.setBounds(0, 30, WINDOW_WIDTH, 100);
@@ -181,15 +122,11 @@ public class GameScene extends Scene implements NetworkListener {
         topPanel.add(lTimer);
         
         add(topPanel);
-        
-        startGameTimer();
     }
     
     private void createGameCanvas() {
         gameCanvas = new GameCanvas();
         gameCanvas.setBounds(0, 120, WINDOW_WIDTH, WINDOW_HEIGHT - 120);
-//        gameCanvas.setBackground(Color.WHITE);
-//        gameCanvas.setOpaque(true);
         add(gameCanvas, Integer.valueOf(javax.swing.JLayeredPane.DEFAULT_LAYER));
     }
     
@@ -208,33 +145,27 @@ public class GameScene extends Scene implements NetworkListener {
         int buttonSize = 70;
         int gap = 40;
         
-        int sectionHeight = buttonSize + 20;  // 버튼 + 라벨
+        int sectionHeight = buttonSize + 20;
         int totalHeight = sectionHeight * 2 + gap;
         int startY = (WINDOW_HEIGHT - totalHeight) / 2;
         
-        // 내 감정 표현 섹션 (클릭 가능)
         createPlayerEmojiSection(myName, true, 20, startY);
-        
-        // 상대방 감정 표현 섹션 (클릭 불가)
         createPlayerEmojiSection(opponentName, false, 20, startY + sectionHeight + gap);
     }
     
     private void createPlayerEmojiSection(String playerName, boolean isMyButton, int x, int y) {
         int buttonSize = 70;
         
-        // 이모지 버튼
         Button emojiButton = createEmojiButton(playerName, isMyButton);
         emojiButton.setBounds(x, y, buttonSize, buttonSize);
         add(emojiButton);
         
-        // 참조 저장
         if (isMyButton) {
             myEmojiButton = emojiButton;
         } else {
             opponentEmojiButton = emojiButton;
         }
         
-        // 플레이어 이름 라벨
         JLabel nameLabel = new JLabel(playerName, SwingConstants.CENTER);
         nameLabel.setFont(getFont().deriveFont(12f));
         nameLabel.setForeground(BLACK);
@@ -243,7 +174,6 @@ public class GameScene extends Scene implements NetworkListener {
     }
     
     private Button createEmojiButton(String playerName, boolean clickable) {
-        // 초기 이모지 설정
         Button button = new Button("😐");
         button.setFont(getFont().deriveFont(40f));
         button.setPreferredSize(new Dimension(70, 70));
@@ -262,17 +192,17 @@ public class GameScene extends Scene implements NetworkListener {
                 }
             });
         } else {
-        	button.setButtonColors(LIGHT_GRAY, LIGHT_GRAY, LIGHT_GRAY);
+            button.setButtonColors(LIGHT_GRAY, LIGHT_GRAY, LIGHT_GRAY);
             button.setBorder(BorderFactory.createLineBorder(GRAY, 1));
-            button.setEnabled(true);  // 버튼은 활성화 상태 유지
-            button.setFocusable(false);  // 포커스 불가
+            button.setEnabled(true);
+            button.setFocusable(false);
         }
         
         return button;
     }
     
     private void createSkillUseSection() {
-    	int buttonW = 100;
+        int buttonW = 100;
         int buttonH = 70;
         int gap = 10;
         int margin = 30;
@@ -280,19 +210,28 @@ public class GameScene extends Scene implements NetworkListener {
         int startX = WINDOW_WIDTH - (buttonW * 3 + gap * 2 + margin);
         int startY = WINDOW_HEIGHT - buttonH - margin;
         
-        // 실제 스킬 이름 배열 (추후 변경 가능)
-        Skill[] skills = {Skill.SHIELD, Skill.SPECIAL, Skill.INVINCIBLE};
-        
-        for (int i = 0; i < skills.length; i++) {
-            Button bSkill = createSkillButton(skills[i]);
-            bSkill.setBounds(startX + i * (buttonW + gap), startY, buttonW, buttonH);
-            add(bSkill);
+        // 역할에 따라 다른 스킬 표시
+        if (myRole == ROLE_KNIGHT) {
+            // 기사 스킬: 외침, 찌르기, 베기
+            skillButtons[0] = createSkillButton("외침(Q)", 0);
+            skillButtons[1] = createSkillButton("찌르기(W)", 1);
+            skillButtons[2] = createSkillButton("베기(E)", 2);
+            
+            for (int i = 0; i < 3; i++) {
+                skillButtons[i].setBounds(startX + i * (buttonW + gap), startY, buttonW, buttonH);
+                add(skillButtons[i]);
+            }
+        } else if (myRole == ROLE_HORSE) {
+            // 말 스킬: 돌진만 (점프/슬라이드는 키보드)
+            skillButtons[5] = createSkillButton("돌진(R)", 5);
+            skillButtons[5].setBounds(startX + buttonW + gap, startY, buttonW, buttonH);
+            add(skillButtons[5]);
         }
     }
     
-    private Button createSkillButton(Skill skill) {
-        Button button = new Button(skill.getDisplayName());
-        button.setFont(getFont().deriveFont(Font.BOLD, 18f));
+    private Button createSkillButton(String text, int skillId) {
+        Button button = new Button(text);
+        button.setFont(getFont().deriveFont(Font.BOLD, 16f));
         button.setForeground(BLACK);
         button.setPreferredSize(new Dimension(100, 70));
         button.setMinimumSize(new Dimension(100, 70));
@@ -301,35 +240,120 @@ public class GameScene extends Scene implements NetworkListener {
         button.setButtonColors(WHITE, WHITE.brighter(), LIGHT_GRAY);
         button.setBorder(BorderFactory.createLineBorder(GRAY, 3));
 
-        button.addActionListener(e -> {
-        	useSkill(skill);
-            System.out.println("Used skill: " + skill.getDisplayName() + " (ID: " + skill.getId() + ")");
-        });
+        button.addActionListener(e -> handleSkillUse(skillId));
 
         return button;
     }
     
     // ==========================================
-    //        게임 로직
+    //        키보드 입력 설정
     // ==========================================
     
-    private void startGameTimer() {
-    	gameTimer = new javax.swing.Timer(1000, e -> {
-            playTime++;
-            updateTimer(playTime);
+    private void setupKeyBindings() {
+        addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (myRole == ROLE_HORSE) {
+                    switch (e.getKeyCode()) {
+                        case KeyEvent.VK_SPACE:
+                            // 점프
+                            handleJumpInput();
+                            break;
+                        case KeyEvent.VK_SHIFT:
+                            // 슬라이드 시작
+                            if (!isSlideKeyPressed) {
+                                isSlideKeyPressed = true;
+                                handleSlideInput(true);
+                            }
+                            break;
+                    }
+                }
+                
+                // 스킬 단축키 (역할 무관)
+                switch (e.getKeyCode()) {
+                    case KeyEvent.VK_Q:
+                        if (myRole == ROLE_KNIGHT) handleSkillUse(0); // 외침
+                        break;
+                    case KeyEvent.VK_W:
+                        if (myRole == ROLE_KNIGHT) handleSkillUse(1); // 찌르기
+                        break;
+                    case KeyEvent.VK_E:
+                        if (myRole == ROLE_KNIGHT) handleSkillUse(2); // 베기
+                        break;
+                    case KeyEvent.VK_R:
+                        if (myRole == ROLE_HORSE) handleSkillUse(5); // 돌진
+                        break;
+                }
+            }
+            
+            @Override
+            public void keyReleased(KeyEvent e) {
+                if (myRole == ROLE_HORSE) {
+                    if (e.getKeyCode() == KeyEvent.VK_SHIFT) {
+                        // 슬라이드 종료
+                        isSlideKeyPressed = false;
+                        handleSlideInput(false);
+                    }
+                }
+            }
         });
-        gameTimer.start();
+        
+        setFocusable(true);
+        requestFocus();
     }
     
-    private void stopGameTimer() {
-        if (gameTimer != null && gameTimer.isRunning()) {
-            gameTimer.stop();
-        }
-        gameTimer = null;
+    // ==========================================
+    //        입력 처리
+    // ==========================================
+    
+    private void handleJumpInput() {
+        NetworkManager nm = getNetworkManager();
+        if (nm == null) return;
+        
+        GameInputMessage msg = new GameInputMessage(
+            nm.getPlayerId(),
+            GameInputMessage.JUMP
+        );
+        nm.sendMessage(MessageType.GAME_INPUT, msg);
+        
+        System.out.println("✓ Jump input sent");
     }
+    
+    private void handleSlideInput(boolean pressed) {
+        NetworkManager nm = getNetworkManager();
+        if (nm == null) return;
+        
+        GameInputMessage msg = new GameInputMessage(
+            nm.getPlayerId(),
+            GameInputMessage.SLIDE,
+            pressed ? 1 : 0
+        );
+        nm.sendMessage(MessageType.GAME_INPUT, msg);
+        
+        System.out.println("✓ Slide " + (pressed ? "ON" : "OFF"));
+    }
+    
+    private void handleSkillUse(int skillId) {
+        NetworkManager nm = getNetworkManager();
+        if (nm == null) return;
+        
+        GameInputMessage msg = new GameInputMessage(
+            nm.getPlayerId(),
+            GameInputMessage.USE_ITEM,
+            skillId
+        );
+        nm.sendMessage(MessageType.GAME_INPUT, msg);
+        
+        System.out.println("✓ Skill use sent: " + skillId);
+    }
+    
+    // ==========================================
+    //        UI 업데이트
+    // ==========================================
     
     public void updateTimer(int seconds) {
-    	SwingUtilities.invokeLater(() -> {
+        SwingUtilities.invokeLater(() -> {
+            this.playTime = seconds;
             lTimer.setText("⏱ " + formatTime(seconds));
         });
     }
@@ -341,24 +365,10 @@ public class GameScene extends Scene implements NetworkListener {
     }
     
     public void updateScore(int newScore) {
-    	SwingUtilities.invokeLater(() -> {
+        SwingUtilities.invokeLater(() -> {
             this.score = newScore;
             lScore.setText(String.format("%,d", score));
         });
-    }
-    
-    private void useSkill(Skill skill) {
-        switch (skill) {
-            case SHIELD:
-                // 방어막 로직
-                break;
-            case SPECIAL:
-                // 필살기 로직
-                break;
-            case INVINCIBLE:
-                // 무적 로직
-                break;
-        }
     }
     
     private String getRoleName(int role) {
@@ -374,10 +384,8 @@ public class GameScene extends Scene implements NetworkListener {
     // ==========================================
     
     private void showEmojiSelector(Button targetButton) {
-    	
         String[] availableEmojis = {"😊", "😡", "😭", "😴", "😱"};
         
-        // 팝업 패널
         JPanel emojiSelectorPanel = new JPanel();
         emojiSelectorPanel.setLayout(new BoxLayout(emojiSelectorPanel, BoxLayout.Y_AXIS));
         emojiSelectorPanel.setBackground(WHITE);
@@ -398,7 +406,7 @@ public class GameScene extends Scene implements NetworkListener {
             emojiOption.setBorder(BorderFactory.createLineBorder(LIGHT_GRAY, 1));
             
             emojiOption.addActionListener(e -> {
-            	NetworkManager nm = getNetworkManager();
+                NetworkManager nm = getNetworkManager();
                 if (nm != null) {
                     int emotionType = emojiToEmotionType(emoji);
                     GameInputMessage msg = new GameInputMessage(
@@ -407,30 +415,27 @@ public class GameScene extends Scene implements NetworkListener {
                         emotionType
                     );
                     nm.sendMessage(MessageType.GAME_INPUT, msg);
-                    System.out.println("Emotion sent to server: " + emoji + " (type=" + emotionType + ")");
                 }
                 
                 closeEmojiSelector();
             });
             
-            emojiSelectorPanel.add(emojiOption, Integer.valueOf(javax.swing.JLayeredPane.POPUP_LAYER));
+            emojiSelectorPanel.add(emojiOption);
             emojiSelectorPanel.add(Box.createVerticalStrut(5));
         }
         
-        int popupX = targetButton.getParent().getX() + targetButton.getX() + targetButton.getWidth() + 10;
-        int popupY = targetButton.getParent().getY() + targetButton.getY();
+        int popupX = targetButton.getX() + targetButton.getWidth() + 10;
+        int popupY = targetButton.getY();
         int popupWidth = 70;
         int popupHeight = availableEmojis.length * 65 + 10;
         
         emojiSelectorPanel.setBounds(popupX, popupY, popupWidth, popupHeight);
         
-        // 기존 팝업이 있으면 제거
         closeEmojiSelector();
         
         currentEmojiSelector = emojiSelectorPanel;
         currentEmojiButton = targetButton;
         
-        // 최상위 레이어에 팝업 추가
         add(emojiSelectorPanel, Integer.valueOf(100)); 
         revalidate();
         repaint();
@@ -463,8 +468,6 @@ public class GameScene extends Scene implements NetworkListener {
                 }
             }
         });
-        
-        System.out.println("Emotion updated: " + playerId + " -> " + emoji);
     }
     
     private int emojiToEmotionType(String emoji) {
@@ -494,222 +497,65 @@ public class GameScene extends Scene implements NetworkListener {
         super.paintComponent(g);
     }
     
+    // ==========================================
+    //        GameCanvas (간단 버전)
+    // ==========================================
+    
     private class GameCanvas extends JPanel {
         private static final long serialVersionUID = 1L;
         
-        private PlayerCharacter player;
-        private List<Obstacle> obstacles;
-        private List<Enemy> enemies;
+        private double characterY = 300;
+        private int characterState = 0;
+        private boolean isInvincible = false;
+        
+        private List<GameStateMessage.ObstacleData> serverObstacles = new ArrayList<>();
         
         public GameCanvas() {
             setOpaque(false);
             setLayout(null);
-            
-            initializeGameObjects();
         }
         
-        private void initializeGameObjects() {
-            player = new PlayerCharacter(100, 300);
-            
-            // ArrayList 대신 CopyOnWriteArrayList 사용 (읽기/쓰기 안전)
-            obstacles = new CopyOnWriteArrayList<>(); 
-            obstacles.add(new Obstacle(700, 470));
-            
-            enemies = new CopyOnWriteArrayList<>();
-            enemies.add(new Enemy(900, 70, "eagle"));
+        public void updateCharacterState(double y, int state, boolean invincible) {
+            this.characterY = y;
+            this.characterState = state;
+            this.isInvincible = invincible;
+            repaint();
+        }
+        
+        public void updateObstacles(List<GameStateMessage.ObstacleData> obstacles) {
+            this.serverObstacles = new ArrayList<>(obstacles);
+            repaint();
         }
         
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
             
-            if (player != null) {
-                player.draw(g);
+            // 캐릭터 그리기
+            g.setColor(BLUE);
+            g.fillRect(100, (int)characterY, 50, 50);
+            g.setColor(WHITE);
+            g.drawString("Player", 110, (int)characterY + 30);
+            
+            // 무적 상태 표시
+            if (isInvincible) {
+                g.setColor(new java.awt.Color(255, 255, 0, 100));
+                g.fillRect(80, (int)characterY - 10, 90, 70);
             }
             
-            for (Obstacle obstacle : obstacles) {
-                obstacle.draw(g);
+            // 장애물 그리기
+            for (GameStateMessage.ObstacleData obs : serverObstacles) {
+                if (!obs.isDestroyed()) {
+                    g.setColor(GRAY);
+                    g.fillRect((int)obs.getX(), (int)obs.getY(), 50, 50);
+                    
+                    // 타입 표시
+                    g.setColor(WHITE);
+                    g.drawString("T" + obs.getType(), (int)obs.getX() + 15, (int)obs.getY() + 30);
+                }
             }
-            
-            for (Enemy enemy : enemies) {
-                enemy.draw(g);
-            }
-        }
-        
-        public void update() {
-            // 스크롤 속도 (장애물이 다가오는 속도)
-            int scrollSpeed = 5; 
-            
-            // 1. 장애물 이동
-            for (int i = 0; i < obstacles.size(); i++) {
-                Obstacle obs = obstacles.get(i);
-                obs.move(-scrollSpeed, 0); // 왼쪽으로 이동
-            }
-            
-            // 2. 적 이동
-            for (int i = 0; i < enemies.size(); i++) {
-                Enemy enemy = enemies.get(i);
-                enemy.move(-scrollSpeed, 0); // 왼쪽으로 이동
-            }
-            
-            // 3. 배경 스크롤 로직이 있다면 추가
-            // backgroundX -= scrollSpeed;
-        }
-        
-        public void addObstacle(Obstacle obstacle) {
-            obstacles.add(obstacle);
-        }
-        
-        public void addEnemy(Enemy enemy) {
-            enemies.add(enemy);
-        }
-        
-        public void removeObstacle(Obstacle obstacle) {
-            obstacles.remove(obstacle);
-        }
-        
-        public void removeEnemy(Enemy enemy) {
-            enemies.remove(enemy);
         }
     }
-    
-    private class PlayerCharacter {
-        private int x, y;
-        private int width, height;
-        private Image image;
-        
-        public PlayerCharacter(int x, int y) {
-            this.x = x;
-            this.y = y;
-            
-            initImage();
-        }
-        
-        private void initImage() {
-            this.image = ResourceManager.getImage("player");
-            
-            if (this.image != null) {
-                this.width = image.getWidth(null);
-                this.height = image.getHeight(null);
-            } else {
-                this.width = 50;
-                this.height = 50;
-            }
-        }
-        
-        public void draw(Graphics g) {
-            if (image != null) {
-                g.drawImage(image, x, y, width, height, null);
-            } else {
-                g.setColor(BLUE);
-                g.fillRect(x, y, width, height);
-                g.setColor(WHITE);
-                g.drawString("Player", x + 20, y + 60);
-            }
-        }
-        
-        public int getWidth() { return width; }
-        public int getHeight() { return height; }
-    }
-    
-    private class Obstacle {
-        private int x, y;
-        private int width, height;
-        private Image image;
-        
-        public Obstacle(int x, int y) {
-            this.x = x;
-            this.y = y;
-            initImage();
-        }
-        
-        private void initImage() {
-        	this.image = ResourceManager.getImage("obstacle");
-            
-            if (this.image != null) {
-                this.width = image.getWidth(null);
-                this.height = image.getHeight(null);
-            } else {
-                this.width = 50;
-                this.height = 50;
-            }
-        }
-        
-        public void draw(Graphics g) {
-            if (image != null) {
-                g.drawImage(image, x, y, width, height, null);
-            } else {
-                g.setColor(GRAY);
-                g.fillRect(x, y, width, height);
-            }
-        }
-        
-        public void move(int dx, int dy) {
-            this.x += dx;
-            this.y += dy;
-        }
-        
-        public int getX() { return x; }
-        public int getY() { return y; }
-        public int getWidth() { return width; }
-        public int getHeight() { return height; }
-    }
-    
-    private class Enemy {
-        private int x, y;
-        private int width, height;
-        private Image image;
-        private String type; 
-        
-        public Enemy(int x, int y, String type) {
-            this.x = x;
-            this.y = y;
-            this.type = type;
-            initImage();
-        }
-        
-        private void initImage() {
-        	String resourceKey = "enemy_" + type; 
-            
-            this.image = ResourceManager.getImage(resourceKey);
-            
-            if (this.image == null) {
-                 this.image = ResourceManager.getImage("enemy_default");
-            }
-
-            if (this.image != null) {
-                this.width = image.getWidth(null);
-                this.height = image.getHeight(null);
-            } else {
-                this.width = 50;
-                this.height = 50;
-            }
-        }
-        
-        public void draw(Graphics g) {
-            if (image != null) {
-                g.drawImage(image, x, y, width, height, null);
-            } else {
-                g.setColor(BLUE);
-                g.fillOval(x, y, width, height);
-                g.setColor(WHITE);
-                g.drawString(type, x + 15, y + 45);
-            }
-        }
-        
-        public void move(int dx, int dy) {
-            this.x += dx;
-            this.y += dy;
-        }
-        
-        public int getX() { return x; }
-        public int getY() { return y; }
-        public int getWidth() { return width; }
-        public int getHeight() { return height; }
-        public String getType() { return type; }
-    }
-    
-    
     
     // ==========================================
     //        NetworkListener 구현
@@ -717,45 +563,35 @@ public class GameScene extends Scene implements NetworkListener {
     
     @Override
     public void onGameInput(GameInputMessage msg) {
-        System.out.println("GameScene received GameInput: type=" + msg.getInputType());
-        
         switch (msg.getInputType()) {
             case GameInputMessage.EMOTION:
-                // 감정 표현 업데이트
                 updateEmotion(msg.getPlayerId(), msg.getValue());
-                break;
-                
-            case GameInputMessage.JUMP:
-            case GameInputMessage.SLIDE:
-            case GameInputMessage.ATTACK:
-                // TODO: 게임 액션 처리
-                System.out.println("Game action received: " + msg.getInputType());
-                break;
-                
-            case GameInputMessage.USE_ITEM:
-                // TODO: 아이템 사용 처리
-                System.out.println("Item use received: " + msg.getValue());
                 break;
         }
     }
     
     @Override
     public void onGameState(GameStateMessage msg) {
-        System.out.println("GameScene received GameState");
-        
-        // TODO: 서버에서 보낸 게임 상태 업데이트(예: 타이머, 점수, 플레이어 위치 등)
-        this.playTime = msg.getRemainingTime();
-        
         SwingUtilities.invokeLater(() -> {
-            updateTimer(this.playTime);
+            // 점수/시간 업데이트
+            updateScore(msg.getScore());
+            updateTimer(msg.getRemainingTime());
+            
+            // 캐릭터 상태 업데이트
+            gameCanvas.updateCharacterState(
+                msg.getPlayerY(),
+                msg.getCharState(),
+                msg.isInvincible()
+            );
+            
+            // 장애물 업데이트
+            gameCanvas.updateObstacles(msg.getObstacles());
         });
     }
     
     @Override
     public void onGameResult(GameResultMessage msg) {
         System.out.println("GameScene received GameResult: score=" + msg.getTotalScore());
-        
-        
         // TODO: 결과 화면으로 전환
     }
 }

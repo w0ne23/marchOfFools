@@ -5,28 +5,30 @@ import marchoffools.common.protocol.Message;
 public class GameInputMessage extends Message {
     private static final long serialVersionUID = 1L;
     
-    // 입력 타입 상수
+    // ========== 입력 타입 상수 ==========
     public static final int INPUT_NONE = 0;
-    public static final int JUMP = 1;			// 점프
+    public static final int JUMP = 1;           // 점프
     public static final int SLIDE = 2;          // 슬라이드
-    public static final int ATTACK = 3;         // 공격(기사 스킬)
-    public static final int USE_ITEM = 4;       // 아이템 사용
-    public static final int EMOTION = 5;        // 감정 표현
+    public static final int USE_ITEM = 3;       // 스킬 사용
+    public static final int EMOTION = 4;        // 감정 표현
     
-    // 감정 타입 상수
+    // ========== 감정 타입 상수 ==========
     public static final int EMOTION_HAPPY = 0;
     public static final int EMOTION_ANGRY = 1;
     public static final int EMOTION_SAD = 2;
     public static final int EMOTION_SLEEP = 3;
     public static final int EMOTION_SURPRISED = 4;
     
-    // 아이템 타입 상수
-    public static final int ITEM_SPEED_BOOST = 0;
-    public static final int ITEM_SHIELD = 1;
-    public static final int ITEM_POWER_UP = 2;
+    // ========== 스킬 ID 상수 ==========
+    public static final int SKILL_SHOUT = 0;    // 기사 - 외침
+    public static final int SKILL_THRUST = 1;   // 기사 - 찌르기
+    public static final int SKILL_SLASH = 2;    // 기사 - 베기
+    public static final int SKILL_JUMP = 3;     // 말 - 점프 (사용 안함, 상태로 처리)
+    public static final int SKILL_SLIDE = 4;    // 말 - 슬라이드 (사용 안함, 상태로 처리)
+    public static final int SKILL_DASH = 5;     // 말 - 돌진
     
     private int inputType;        // 입력 타입
-    private int value;            // 추가 값 (감정 타입, 아이템 타입 등)
+    private int value;            // 추가 값 (감정 타입, 스킬 ID 등)
     private boolean pressed;      // 키 눌림/뗌 (이동, 공격용)
     
     public GameInputMessage() {
