@@ -18,7 +18,7 @@ public class Room {
     private String roomId;
     private String hostId;
     private Map<String, PlayerInfo> players;  // playerId -> PlayerInfo
-    private Map<String, ClientHandler> handlers;  // playerId -> ClientHandler
+	private Map<String, ClientHandler> handlers;  // playerId -> ClientHandler
     private boolean playing;
     private boolean full;
     private int status;
@@ -208,6 +208,11 @@ public class Room {
     }
     
     // Getters and Setters
+    
+    public GameSession getGameSession() {
+        return gameSession;
+    }
+    
     public int getStatus() {
         return status;
     }
@@ -223,6 +228,10 @@ public class Room {
     public String getHostId() {
         return hostId;
     }
+
+    public Map<String, PlayerInfo> getPlayers() {
+		return players;
+	}
     
     public int getPlayerCount() {
         return players.size();

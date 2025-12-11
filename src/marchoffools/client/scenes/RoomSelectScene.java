@@ -2,6 +2,7 @@ package marchoffools.client.scenes;
 
 import static marchoffools.common.message.RoomActionMessage.*;
 
+import marchoffools.client.network.NetworkListener;
 import marchoffools.client.network.NetworkManager;
 import marchoffools.client.core.Scene;
 import marchoffools.client.ui.Button;
@@ -20,11 +21,14 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 
 import marchoffools.common.protocol.MessageType;
 import marchoffools.common.message.RoomActionMessage;
+import marchoffools.common.message.RoomInfoMessage;
 
-public class RoomSelectScene extends Scene {
+// TODO: networkXXX... 관련 구조 수정 필요(책임, 참조관계 등...)
+public class RoomSelectScene extends Scene implements NetworkListener {
 
     private JPanel pMenu, pInput, pLoading;
     private JTextField tfRoomId;
@@ -46,7 +50,25 @@ public class RoomSelectScene extends Scene {
         
         setFocusable(false);
     }
-
+    
+    @Override
+    public void onRoomInfo(RoomInfoMessage msg) {
+        System.out.println("✅ RoomSelectScene received RoomInfo");
+        
+        SwingUtilities.invokeLater(() -> {
+            // 로딩 화면 숨김
+            pLoading.setVisible(false);
+            pMenu.setVisible(true);
+            
+            // LobbyScene으로 전환
+            LobbyScene lobbyScene = new LobbyScene();
+            switchTo(lobbyScene);
+            
+            // 전환 직후 RoomInfo 전달
+            lobbyScene.updateRoomInfo(msg);
+        });
+    }
+    
     // 연결 보장 메서드
     private boolean ensureConnected() {
         System.out.println("ensureConnected() called");
