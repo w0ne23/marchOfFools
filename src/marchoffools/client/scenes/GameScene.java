@@ -5,15 +5,20 @@ import static marchoffools.client.core.Assets.Colors.*;
 import static marchoffools.client.core.Config.*;
 import static marchoffools.common.message.RoomActionMessage.*;
 
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -26,6 +31,7 @@ import javax.swing.SwingUtilities;
 import marchoffools.client.network.NetworkManager;
 import marchoffools.client.network.NetworkListener;
 import marchoffools.client.ui.Button;
+import marchoffools.client.ui.Sprite;
 import marchoffools.client.core.Scene;
 import marchoffools.client.core.Skill;
 import marchoffools.common.message.GameInputMessage;
@@ -496,66 +502,166 @@ public class GameScene extends Scene implements NetworkListener {
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
     }
-    
-    // ==========================================
-    //        GameCanvas (간단 버전)
-    // ==========================================
-    
-    private class GameCanvas extends JPanel {
-        private static final long serialVersionUID = 1L;
-        
-        private double characterY = 300;
-        private int characterState = 0;
-        private boolean isInvincible = false;
-        
-        private List<GameStateMessage.ObstacleData> serverObstacles = new ArrayList<>();
-        
-        public GameCanvas() {
-            setOpaque(false);
-            setLayout(null);
-        }
-        
-        public void updateCharacterState(double y, int state, boolean invincible) {
-            this.characterY = y;
-            this.characterState = state;
-            this.isInvincible = invincible;
-            repaint();
-        }
-        
-        public void updateObstacles(List<GameStateMessage.ObstacleData> obstacles) {
-            this.serverObstacles = new ArrayList<>(obstacles);
-            repaint();
-        }
-        
-        @Override
-        protected void paintComponent(Graphics g) {
-            super.paintComponent(g);
-            
-            // 캐릭터 그리기
-            g.setColor(BLUE);
-            g.fillRect(100, (int)characterY, 50, 50);
-            g.setColor(WHITE);
-            g.drawString("Player", 110, (int)characterY + 30);
-            
-            // 무적 상태 표시
-            if (isInvincible) {
-                g.setColor(new java.awt.Color(255, 255, 0, 100));
-                g.fillRect(80, (int)characterY - 10, 90, 70);
-            }
-            
-            // 장애물 그리기
-            for (GameStateMessage.ObstacleData obs : serverObstacles) {
-                if (!obs.isDestroyed()) {
-                    g.setColor(GRAY);
-                    g.fillRect((int)obs.getX(), (int)obs.getY(), 50, 50);
-                    
-                    // 타입 표시
-                    g.setColor(WHITE);
-                    g.drawString("T" + obs.getType(), (int)obs.getX() + 15, (int)obs.getY() + 30);
-                }
-            }
-        }
-    }
+	
+	/**
+	 * 게임 화면을 그리는 캔버스
+	 */
+	public class GameCanvas extends JPanel {
+	    private static final long serialVersionUID = 1L;
+	    
+	    // 스프라이트들
+	    private Sprite player;
+	    private Map<String, Sprite> obstacles;
+	    private List<Sprite> skillRanges;
+	    
+	    // 마지막 게임 상태
+	    private GameStateMessage lastGameState;
+	    
+	    // 장애물 타입별 라벨
+	    private static final String[] OBSTACLE_LABELS = {
+	        "G", "A", "SM", "HM", "BOSS"
+	    };
+	    
+	    public GameCanvas() {
+	        setOpaque(false);
+	        setLayout(null);
+	        
+	        // 플레이어 스프라이트 생성
+	        player = new Sprite(Sprite.TYPE_PLAYER, 100, 300, 50, 50);
+	        player.setLabel("Player");
+	        
+	        // 장애물 맵
+	        obstacles = new HashMap<>();
+	        
+	        // 스킬 범위 리스트
+	        skillRanges = new ArrayList<>();
+	    }
+	    
+	    /**
+	     * 게임 상태 업데이트
+	     */
+	    public void updateGameState(GameStateMessage msg) {
+	        this.lastGameState = msg;
+	        
+	        // 플레이어 상태 업데이트
+	        updateCharacter(msg);
+	        
+	        // 장애물 업데이트
+	        updateObstacles(msg.getObstacles());
+	        
+	        // 스킬 범위 업데이트
+	        updateSkillRanges(msg.getActiveSkills());
+	        
+	        repaint();
+	    }
+	    
+	    /**
+	     * 캐릭터 상태 업데이트
+	     */
+	    private void updateCharacter(GameStateMessage msg) {
+	        player.setY(msg.getPlayerY());
+	        player.setState(msg.getCharState());
+	        player.setInvincible(msg.isInvincible());
+	    }
+	    
+	    /**
+	     * 장애물 업데이트
+	     */
+	    private void updateObstacles(List<GameStateMessage.ObstacleData> obsData) {
+	        // 기존 장애물 중 서버에 없는 것 제거
+	        obstacles.keySet().removeIf(id -> 
+	            obsData.stream().noneMatch(o -> o.getId().equals(id))
+	        );
+	        
+	        // 서버 장애물 동기화
+	        for (GameStateMessage.ObstacleData data : obsData) {
+	            Sprite sprite = obstacles.get(data.getId());
+	            
+	            if (sprite == null) {
+	                // 새 장애물 생성
+	                sprite = new Sprite(Sprite.TYPE_OBSTACLE, data.getX(), data.getY(), 50, 50);
+	                sprite.setSubType(data.getType());
+	                
+	                // 타입별 라벨 설정
+	                if (data.getType() >= 0 && data.getType() < OBSTACLE_LABELS.length) {
+	                    sprite.setLabel(OBSTACLE_LABELS[data.getType()]);
+	                }
+	                
+	                obstacles.put(data.getId(), sprite);
+	            } else {
+	                // 기존 장애물 위치 업데이트
+	                sprite.setX(data.getX());
+	                sprite.setY(data.getY());
+	                sprite.setDestroyed(data.isDestroyed());
+	            }
+	        }
+	    }
+	    
+	    /**
+	     * 스킬 범위 업데이트
+	     */
+	    private void updateSkillRanges(boolean[] activeSkills) {
+	        skillRanges.clear();
+	        
+	        if (activeSkills == null) return;
+	        
+	        double playerX = player.getX();
+	        double playerY = player.getY();
+	        int playerWidth = player.getWidth();
+	        int playerHeight = player.getHeight();
+	        int playerRight = (int)(playerX + playerWidth);
+	        
+	        // 외침 스킬 (0번): 화면 전체
+	        if (activeSkills[0]) {
+	            Sprite shout = new Sprite(Sprite.TYPE_SKILL_RANGE, 0, 0, getWidth(), getHeight());
+	            shout.setFillColor(new Color(255, 200, 0, 50));
+	            shout.setStrokeColor(new Color(255, 200, 0, 200));
+	            shout.setStrokeWidth(3);
+	            shout.setLabel("외침!");
+	            skillRanges.add(shout);
+	        }
+	        
+	        // 찌르기 스킬 (1번): 150px
+	        if (activeSkills[1]) {
+	            Sprite thrust = new Sprite(Sprite.TYPE_SKILL_RANGE, playerRight, playerY, 150, playerHeight);
+	            thrust.setFillColor(new Color(255, 0, 0, 80));
+	            thrust.setStrokeColor(new Color(255, 0, 0, 255));
+	            thrust.setLabel("찌르기");
+	            skillRanges.add(thrust);
+	        }
+	        
+	        // 베기 스킬 (2번): 100px
+	        if (activeSkills[2]) {
+	            Sprite slash = new Sprite(Sprite.TYPE_SKILL_RANGE, playerRight, playerY, 100, playerHeight);
+	            slash.setFillColor(new Color(0, 150, 255, 80));
+	            slash.setStrokeColor(new Color(0, 150, 255, 255));
+	            slash.setLabel("베기");
+	            skillRanges.add(slash);
+	        }
+	    }
+	    
+	    @Override
+	    protected void paintComponent(Graphics g) {
+	        super.paintComponent(g);
+	        
+	        Graphics2D g2d = (Graphics2D) g;
+	        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, 
+	                            RenderingHints.VALUE_ANTIALIAS_ON);
+	        
+	        // 1. 스킬 범위 그리기 (제일 뒤)
+	        for (Sprite skillRange : skillRanges) {
+	            skillRange.draw(g2d);
+	        }
+	        
+	        // 2. 장애물 그리기
+	        for (Sprite obstacle : obstacles.values()) {
+	            obstacle.draw(g2d);
+	        }
+	        
+	        // 3. 플레이어 그리기 (제일 앞)
+	        player.draw(g2d);
+	    }
+	}
     
     // ==========================================
     //        NetworkListener 구현
@@ -578,14 +684,7 @@ public class GameScene extends Scene implements NetworkListener {
             updateTimer(msg.getRemainingTime());
             
             // 캐릭터 상태 업데이트
-            gameCanvas.updateCharacterState(
-                msg.getPlayerY(),
-                msg.getCharState(),
-                msg.isInvincible()
-            );
-            
-            // 장애물 업데이트
-            gameCanvas.updateObstacles(msg.getObstacles());
+            gameCanvas.updateGameState(msg);
         });
     }
     
