@@ -38,5 +38,6 @@ public class Assets {
         public static final Color BLUE_PRESSED = new Color(110, 150, 230); 
         
         public static final Color GREEN = new Color(46, 204, 113);
+        public static final Color RED = new Color(231, 76, 60);
     }
 }
