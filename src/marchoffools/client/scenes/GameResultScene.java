@@ -1,6 +1,7 @@
 package marchoffools.client.scenes;
 
 import marchoffools.client.core.Scene;
+import marchoffools.client.network.NetworkManager;
 import marchoffools.client.ui.Button;
 
 import static marchoffools.client.core.Assets.Backgrounds.DEFAULT;
@@ -243,17 +244,25 @@ public class GameResultScene extends Scene {
         bBackToLobby.setButtonColors(LIGHT_GRAY, WHITE, GRAY);
         bBackToLobby.addActionListener(e -> {
             System.out.println("대기실로 돌아가기");
-//            switchTo(LobbyScene);
+            goBack();
         });
         buttonPanel.add(bBackToLobby);
         
-        Button bPlayAgain = new Button("다시 게임하기");
+        Button bPlayAgain = new Button("게임 종료하기");
         bPlayAgain.setFont(getFont().deriveFont(16f));
         bPlayAgain.setButtonColors(LIGHT_GRAY, WHITE, GRAY);
         bPlayAgain.addActionListener(e -> {
-            System.out.println("다시 게임하기");
-//            switchTo(GameScene);
-            // 게임 재시작 로직 작성
+            System.out.println("게임 종료하기");
+            
+            NetworkManager nm = getNetworkManager();
+            if (nm != null && nm.isConnected()) {
+                nm.disconnect();
+                System.out.println("서버 연결 해제됨");
+            }
+            // TODO: 게임 종료 처리
+            
+            clearHistory();
+            switchToWithoutHistory(new TitleScene());
         });
         buttonPanel.add(bPlayAgain);
         

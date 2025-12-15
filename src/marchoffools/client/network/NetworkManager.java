@@ -220,7 +220,7 @@ public class NetworkManager {
                 if (!(currentScene instanceof LobbyScene)) {
                     // LobbyScene이 아니면 전환
                     LobbyScene lobbyScene = new LobbyScene();
-                    frame.switchScene(lobbyScene);
+                    frame.switchSceneWithoutHistory(lobbyScene);
                     // Scene 전환 직후 RoomInfo 전달
                     lobbyScene.updateRoomInfo(msg);
                 } else {

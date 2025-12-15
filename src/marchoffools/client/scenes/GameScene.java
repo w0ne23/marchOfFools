@@ -85,7 +85,7 @@ public class GameScene extends Scene implements NetworkListener {
         };
         addMouseListener(sceneMouseListener);
         
-        createExitButton();
+//        createExitButton();
         createScoreTimeSection();
         createEmotionSection();
         createGameCanvas();
@@ -96,6 +96,8 @@ public class GameScene extends Scene implements NetworkListener {
         System.out.println("  Opponent: " + opponentName + " [" + getRoleName(opponentRole) + "]");
         
         startGameLoop();
+        
+        setFocusable(false);
     }
     
     @Override
@@ -193,16 +195,16 @@ public class GameScene extends Scene implements NetworkListener {
         add(gameCanvas, Integer.valueOf(javax.swing.JLayeredPane.DEFAULT_LAYER));
     }
     
-    private void createExitButton() {
-        Button bExit = new Button("->");
-        bExit.setFont(getFont().deriveFont(Font.BOLD, 30f));
-        bExit.setSize(100, 50); 
-        bExit.setLocation(WINDOW_WIDTH - bExit.getWidth() - 72, 40);
-        bExit.addActionListener(e -> {
-            goBack();
-        });
-        add(bExit);
-    }
+//    private void createExitButton() {
+//        Button bExit = new Button("->");
+//        bExit.setFont(getFont().deriveFont(Font.BOLD, 30f));
+//        bExit.setSize(100, 50); 
+//        bExit.setLocation(WINDOW_WIDTH - bExit.getWidth() - 72, 40);
+//        bExit.addActionListener(e -> {
+//            goBack();
+//        });
+//        add(bExit);
+//    }
     
     private void createEmotionSection() {
         int buttonSize = 70;
@@ -317,6 +319,17 @@ public class GameScene extends Scene implements NetworkListener {
     	gameTimer = new javax.swing.Timer(1000, e -> {
             playTime++;
             updateTimer(playTime);
+            
+//            // 게임 종료 테스트
+//            if (playTime >= 15) {
+//                System.out.println("Test: 15 seconds reached. Switching to ResultScene.");
+//                
+//                // 1. 타이머 중지 (계속 실행되는 것 방지)
+//                stopGameTimer(); 
+//                
+//                // 2. 결과 씬으로 전환 (onGameResult에서 하는 것과 동일한 동작)
+//                switchToWithoutHistory(new GameResultScene());
+//            }
         });
         gameTimer.start();
     }
@@ -755,7 +768,6 @@ public class GameScene extends Scene implements NetworkListener {
     public void onGameResult(GameResultMessage msg) {
         System.out.println("GameScene received GameResult: score=" + msg.getTotalScore());
         
-        
-        // TODO: 결과 화면으로 전환
+        switchToWithoutHistory(new GameResultScene());
     }
 }

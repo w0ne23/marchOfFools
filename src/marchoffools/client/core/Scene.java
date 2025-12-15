@@ -48,6 +48,18 @@ public abstract class Scene extends JPanel {
         }
     }
     
+    protected void switchToWithoutHistory(Scene newScene) {
+        if (sceneContext != null) {
+            sceneContext.switchSceneWithoutHistory(newScene);
+        }
+    }
+
+    protected void clearHistory() {
+        if (sceneContext != null) {
+            sceneContext.clearHistory();
+        }
+    }
+    
     protected void goBack() {
     	if (sceneContext != null) {
     		sceneContext.goBack();

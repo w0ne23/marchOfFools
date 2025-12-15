@@ -152,7 +152,9 @@ public class LobbyScene extends Scene implements NetworkListener {
         bExit.setFont(getFont().deriveFont(Font.BOLD, 30f));
         bExit.setSize(100, 50); 
         bExit.setLocation(WINDOW_WIDTH - bExit.getWidth() - 72, 40);
-        bExit.addActionListener(e -> handleExit());
+        bExit.addActionListener(e -> {
+            goBack();
+        });
         mainLayerPanel.add(bExit);
     }
     
@@ -943,7 +945,7 @@ public class LobbyScene extends Scene implements NetworkListener {
                 RoomActionMessage msg = new RoomActionMessage(nm.getPlayerId(), LEAVE_ROOM);
                 nm.sendMessage(MessageType.ROOM_ACTION, msg);
             }
-            switchTo(new TitleScene());
+            goBack();
         }
     }
     
@@ -1009,19 +1011,6 @@ public class LobbyScene extends Scene implements NetworkListener {
             
             switchTo(gameScene);
             
-            SwingUtilities.invokeLater(() -> {
-                this.setVisible(false);
-                this.removeAll();
-                
-                java.awt.Container parent = this.getParent();
-                if (parent != null) {
-                    parent.remove(this);
-                    parent.revalidate();
-                    parent.repaint();
-                }
-            });
-            
-            gameScene.requestFocusInWindow();
         });
     }
     
