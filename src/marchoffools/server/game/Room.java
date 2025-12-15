@@ -228,6 +228,10 @@ public class Room {
         return players.size();
     }
     
+    public PlayerInfo getPlayerInfo(String playerId) {
+        return players.get(playerId);
+    }
+    
     public boolean isFull() {
         return full;
     }

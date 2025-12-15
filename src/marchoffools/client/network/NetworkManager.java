@@ -177,6 +177,9 @@ public class NetworkManager {
             case GAME_RESULT:
                 handleGameResult((GameResultMessage) packet.getData());
                 break;
+            case ROOM_LIST:
+                handleRoomList((RoomListMessage) packet.getData());
+                break;
                 
             default:
                 System.out.println("알 수 없는 메시지 타입: " + type);
@@ -284,6 +287,14 @@ public class NetworkManager {
             SwingUtilities.invokeLater(() -> listener.onGameResult(msg));
         } else {
             System.out.println("Warning: No NetworkListener set for GameResult");
+        }
+    }
+    
+    private void handleRoomList(RoomListMessage msg) {
+        System.out.println("RoomList 수신: " + msg.getRooms().size() + "개 방");
+        
+        if (listener != null) {
+            SwingUtilities.invokeLater(() -> listener.onRoomList(msg));
         }
     }
     

@@ -18,6 +18,7 @@ public class RoomActionMessage extends Message {
     public static final int SELECT_CHARACTER = 9;
     public static final int PLAYER_READY = 10;
     public static final int START_GAME = 11;
+    public static final int LIST_ROOMS = 12;
     
     // 캐릭터 타입 상수
     public static final int ROLE_NONE = 0;

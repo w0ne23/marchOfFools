@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.List;
 
 import marchoffools.common.protocol.MessageType;
 import marchoffools.common.protocol.Packet;
@@ -108,6 +109,10 @@ public class ClientHandler extends Thread {
                 
             case RoomActionMessage.LEAVE_ROOM:  
                 handleLeaveRoom(msg);
+                break;
+                
+            case RoomActionMessage.LIST_ROOMS:
+                handleListRooms(msg);
                 break;
                 
             case RoomActionMessage.CANCEL_MATCH:  
@@ -345,6 +350,19 @@ public class ClientHandler extends Thread {
             // 남은 플레이어들에게 알림
             room.broadcastRoomInfo(RoomInfoMessage.PLAYER_LEFT);
         }
+    }
+    
+    private void handleListRooms(RoomActionMessage msg) {
+        System.out.println("방 목록 요청: " + playerName);
+        
+        RoomManager roomManager = server.getRoomManager();
+        List<RoomListMessage.RoomSummary> roomList = roomManager.getRoomList();
+        
+        RoomListMessage response = new RoomListMessage(roomList);
+        Packet packet = new Packet(MessageType.ROOM_LIST, response);
+        sendPacket(packet);
+        
+        System.out.println("방 목록 전송: " + roomList.size() + "개");
     }
     
     private void handleCancelMatch(RoomActionMessage msg) {
