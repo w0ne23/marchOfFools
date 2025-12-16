@@ -12,10 +12,9 @@ public class CharacterController {
     public static final int STATE_IDLE = 0;
     public static final int STATE_JUMPING = 1;
     public static final int STATE_SLIDING = 2;
-    public static final int STATE_ATTACKING = 3;
 
     // ========== 점프 관련 상수 ==========
-    private static final double GRAVITY = 2500.0; // 중력 (픽셀/초²)
+    private static final double GRAVITY = 2000.0; // 중력 (픽셀/초²)
     private static final double JUMP_INITIAL_VELOCITY = 1000;
 
     // ========== 슬라이드 관련 상수 ==========
@@ -24,6 +23,8 @@ public class CharacterController {
     // ========== 캐릭터 상태 ==========
     private int charState = STATE_IDLE;
     private long stateStartTime = 0;
+    private boolean isAttacking = false;
+    private long attackEndTime = 0;
 
     // ========== 점프 상태 ==========
     private double playerY = GameConstants.CHARACTER_Y;
@@ -67,12 +68,9 @@ public class CharacterController {
             updateSlide(deltaTime);
         }
 
-        // 공격 상태 자동 복귀
-        if (charState == STATE_ATTACKING) {
-            long elapsed = now - stateStartTime;
-            if (elapsed > 300) { // 0.3초
-                charState = STATE_IDLE;
-            }
+        // 공격 상태 복귀
+        if (isAttacking && now >= attackEndTime) {
+            isAttacking = false;
         }
 
         // 무적 상태 체크
@@ -92,10 +90,9 @@ public class CharacterController {
 //        System.out.println("  JUMP_HEIGHT constant: " + GameConstants.JUMP_HEIGHT);
         System.out.println("  Calculated initial velocity: " + JUMP_INITIAL_VELOCITY);
         
-        // 이미 슬라이드 중이면 무시
+        // 이미 점프 중이면 무시
         if (charState == STATE_JUMPING) {
             System.out.println("  ❌ Already jumping - ignored");
-            return;
         }
         
         // 점프 실행
@@ -226,8 +223,8 @@ public class CharacterController {
             case GameSkill.SKILL_SHOUT:
             case GameSkill.SKILL_THRUST:
             case GameSkill.SKILL_SLASH:
-                charState = STATE_ATTACKING;
-                stateStartTime = now;
+                isAttacking = true;
+                attackEndTime = now + 300;
                 System.out.println("[CharController] Attack skill activated: " + skillId);
                 break;
         }
@@ -298,6 +295,10 @@ public class CharacterController {
         return isInvincible;
     }
 
+	public boolean isAttacking() {
+	    return isAttacking;
+	}
+
     public long[] getLastSkillUsedTime() {
         return lastSkillUsedTime;
     }
@@ -324,6 +325,8 @@ public class CharacterController {
         targetY = GameConstants.CHARACTER_Y;
         isInvincible = false;
         dashEndTime = 0;
+        isAttacking = false;
+        attackEndTime = 0;
         lastSkillUsedTime = new long[6];
         skillActiveUntil = new long[6];
         

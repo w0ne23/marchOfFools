@@ -7,10 +7,10 @@ public class GameInputMessage extends Message {
     
     // ========== 입력 타입 상수 ==========
     public static final int INPUT_NONE = 0;
-    public static final int JUMP = 1;           // 점프
-    public static final int SLIDE = 2;          // 슬라이드
-    public static final int USE_ITEM = 3;       // 스킬 사용
-    public static final int EMOTION = 4;        // 감정 표현
+    public static final int JUMP = 1;		// 점프
+    public static final int SLIDE = 2;		// 슬라이드
+    public static final int ATTACK = 3;		// 스킬 사용
+    public static final int EMOTION = 4;	// 감정 표현
     
     // ========== 감정 타입 상수 ==========
     public static final int EMOTION_HAPPY = 0;

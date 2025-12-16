@@ -579,7 +579,7 @@ public class ClientHandler extends Thread {
                 System.out.println("✔ Slide " + (isSliding ? "ON" : "OFF") + ": " + playerName);
                 break;
                 
-            case GameInputMessage.USE_ITEM:
+            case GameInputMessage.ATTACK:
                 // 스킬 처리
                 int skillId = msg.getValue();
                 

@@ -7,7 +7,7 @@ public class GameConstants {
     public static final int GAME_HEIGHT = 768;
     
     // ========== 기준 좌표 ==========
-    public static final int GROUND_Y = 600;
+    public static final int GROUND_Y = 650;
 //    public static final double JUMP_HEIGHT = 150.0; // 점프 시 최대 높이 증가치
     public static final double SLIDE_HEIGHT = 50.0; // 슬라이드 시 높이 감소치
     

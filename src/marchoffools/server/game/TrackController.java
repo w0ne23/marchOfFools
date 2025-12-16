@@ -13,14 +13,14 @@ import marchoffools.common.model.GameSkill;
  */
 public class TrackController {
 
-    private static final double SCROLL_SPEED = 400.0; // 초당 픽셀
+    private static final double SCROLL_SPEED = 500.0; // 초당 픽셀
 
     private Room room;
     private CharacterController charController;
     private List<ObstacleData> obstacles;
     
     private double distance = 0.0;
-    private double scrollSpeed = SCROLL_SPEED;
+    private double scrollSpeed = SCROLL_SPEED; // TODO: 시간 기반 배속 구현...
     private int score = 0;
     private boolean gameOver = false;
     

@@ -107,6 +107,7 @@ public class GameScene extends Scene implements NetworkListener {
         createEmotionSection();
         createGameCanvas();
         createSkillUseSection();
+        
         setupKeyBindings();
         startCooldownTimer();
 
@@ -114,7 +115,6 @@ public class GameScene extends Scene implements NetworkListener {
         System.out.println("  My Name: " + myName + " [" + getRoleName(myRole) + "]");
         System.out.println("  Opponent: " + opponentName + " [" + getRoleName(opponentRole) + "]");
 
-        setFocusable(false);
     }
     
     @Override
@@ -429,6 +429,7 @@ public class GameScene extends Scene implements NetworkListener {
         addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
+            	System.out.println("Key pressed: " + e.getKeyCode()); // DEBUG
                 if (myRole == ROLE_HORSE) {
                     switch (e.getKeyCode()) {
                         case KeyEvent.VK_SPACE:
@@ -472,6 +473,7 @@ public class GameScene extends Scene implements NetworkListener {
         });
 
         setFocusable(true);
+        setFocusTraversalKeysEnabled(false);
         requestFocus();
     }
     
@@ -518,7 +520,7 @@ public class GameScene extends Scene implements NetworkListener {
 
         GameInputMessage msg = new GameInputMessage(
             nm.getPlayerId(),
-            GameInputMessage.USE_ITEM,
+            GameInputMessage.ATTACK,
             skillId
         );
         nm.sendMessage(MessageType.GAME_INPUT, msg);
@@ -980,6 +982,7 @@ public class GameScene extends Scene implements NetworkListener {
     @Override
     public void onGameState(GameStateMessage msg) {
         SwingUtilities.invokeLater(() -> {
+        	requestFocusInWindow();
             updateScore(msg.getScore());
             updateTimer(msg.getPlayTime());
             gameCanvas.updateGameState(msg);
