@@ -13,8 +13,11 @@ public class ResourceManager {
     public static void loadAllResources() {
         try {
             loadImage("player", "/assets/testCharacter.png");
-            loadImage("obstacle", "/assets/testObstacle.png");
-            loadImage("enemy_eagle", "/assets/testEnemy2.png");
+            
+            for (marchoffools.common.model.GameEntity entity : 
+                marchoffools.common.model.GameEntity.values()) {
+               loadImage(entity.name(), entity.getImagePath());
+           }
             
             System.out.println("All resources loaded successfully.");
         } catch (Exception e) {
