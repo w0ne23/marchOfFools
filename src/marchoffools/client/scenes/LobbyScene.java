@@ -18,6 +18,7 @@ import java.util.List;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JLayeredPane;
 import javax.swing.JOptionPane;
@@ -31,6 +32,7 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.html.HTMLDocument;
 import javax.swing.text.html.HTMLEditorKit;
 
+import marchoffools.client.core.Assets;
 import marchoffools.client.core.Scene;
 import marchoffools.client.network.NetworkManager;
 import marchoffools.client.network.NetworkListener;
@@ -89,10 +91,10 @@ public class LobbyScene extends Scene implements NetworkListener {
     private JLayeredPane layeredPane;
     private JPanel mainLayerPanel;
     
-    private static final String[] KNIGHT_NAMES = {"워리어", "매지션", "아처"};
+    private static final String[] KNIGHT_NAMES = {"Warrior", "Archer", "Axe"};
     private static final String[] KNIGHT_DESCS = {"강력한 근접 공격", "다양한 마법 스킬", "원거리 제압 특화"};
 
-    private static final String[] HORSE_NAMES = {"날쌘돌이", "철벽이", "유니콘"};
+    private static final String[] HORSE_NAMES = {"Unicorn", "Griffin", "Dragon"};
     private static final String[] HORSE_DESCS = {"이동 속도 보너스", "높은 체력과 방어력", "특수 점프 능력"};
 
     private static final javax.swing.border.Border SELECTED_BORDER = BorderFactory.createCompoundBorder(
@@ -498,15 +500,18 @@ public class LobbyScene extends Scene implements NetworkListener {
     	
     	String[] targetNames;
         String[] targetDescs;
+        String[] targetImages;
         String roleTitle;
 
         if (myRole == ROLE_KNIGHT) {
             targetNames = KNIGHT_NAMES;
             targetDescs = KNIGHT_DESCS;
+            targetImages = new String[]{"knight_warrior", "knight_archer", "knight_axe"};
             roleTitle = "기사(Knight) 캐릭터 선택";
         } else if (myRole == ROLE_HORSE) {
             targetNames = HORSE_NAMES;
             targetDescs = HORSE_DESCS;
+            targetImages = new String[]{"horse_unicorn", "horse_griffin", "horse_dragon"};
             roleTitle = "말(Horse) 캐릭터 선택";
         } else {
             JOptionPane.showMessageDialog(this, "먼저 역할을 선택해주세요.");
@@ -555,7 +560,7 @@ public class LobbyScene extends Scene implements NetworkListener {
         
         for (int i = 0; i < targetNames.length; i++) {
             // 1. 패널 생성
-            JPanel characterPanel = createCharacterItemPanel(targetNames[i], targetDescs[i], i);
+            JPanel characterPanel = createCharacterItemPanel(targetNames[i], targetDescs[i], targetImages[i], i);
             characterPanels[i] = characterPanel;
             
             // 2. 초기 스타일 적용 (선택 안됨, 호버 아님)
@@ -642,26 +647,28 @@ public class LobbyScene extends Scene implements NetworkListener {
     /**
      * 캐릭터 아이템 패널 생성
      */
-    private JPanel createCharacterItemPanel(String characterName, String descText, int index) {
+    private JPanel createCharacterItemPanel(String characterName, String descText, String imageKey, int index) {
         JPanel panel = new JPanel(new BorderLayout(15, 0));
         panel.setBackground(WHITE);
         panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 120));
         panel.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         
         // 이미지 영역 
-        JPanel imagePanel = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                g.setColor(LIGHT_GRAY);
-                g.fillRect(0, 0, getWidth(), getHeight());
-                g.setColor(GRAY);
-                g.drawString("IMG", 20, 50);
-            }
-        };
-        imagePanel.setPreferredSize(new Dimension(80, 80));
-        imagePanel.setBackground(LIGHT_GRAY);
-        panel.add(imagePanel, BorderLayout.WEST);
+        JLabel imageLabel = new JLabel();
+        imageLabel.setPreferredSize(new Dimension(80, 80));
+        imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        imageLabel.setOpaque(true);
+        imageLabel.setBackground(LIGHT_GRAY); // 이미지가 없을 때를 대비한 배경색
+
+        ImageIcon icon = Assets.Characters.get(imageKey);
+        if (icon != null) {
+            imageLabel.setIcon(icon);
+            imageLabel.setText(""); 
+        } else {
+            imageLabel.setText("No IMG");
+        }
+        
+        panel.add(imageLabel, BorderLayout.WEST);
         
         // 캐릭터 정보 영역
         JPanel infoPanel = new JPanel();

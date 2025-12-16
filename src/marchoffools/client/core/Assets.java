@@ -1,6 +1,13 @@
 package marchoffools.client.core;
 
 import java.awt.Color;
+import java.awt.Image;
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import javax.imageio.ImageIO;
+import javax.swing.ImageIcon;
 
 public class Assets {
 
@@ -40,5 +47,40 @@ public class Assets {
         
         public static final Color GREEN = new Color(46, 204, 113);
         public static final Color RED = new Color(231, 76, 60);
+    }
+    
+    public static class Characters {
+        private static final Map<String, ImageIcon> icons = new HashMap<>();
+
+        public static ImageIcon get(String name) {
+            return icons.get(name);
+        }
+
+        public static void load() {
+            loadIcon("knight_warrior",  "src/assets/warrior.png"); 
+            loadIcon("knight_archer", "src/assets/archer.png");
+            loadIcon("knight_axe",   "src/assets/axe.png");
+
+            loadIcon("horse_unicorn",  "src/assets/unicorn.png");
+            loadIcon("horse_griffin",    "src/assets/griffin.png");
+            loadIcon("horse_dragon", "src/assets/dragon.png");
+        }
+        
+        private static void loadIcon(String key, String path) {
+            try {
+                File file = new File(path);
+                if (file.exists()) {
+                    Image img = ImageIO.read(file);
+                    Image scaledImg = img.getScaledInstance(80, 80, Image.SCALE_SMOOTH);
+                    icons.put(key, new ImageIcon(scaledImg));
+                    System.out.println("이미지 로드 성공: " + key);
+                } else {
+                    System.err.println("이미지 파일을 찾을 수 없음: " + path);
+                }
+            } catch (IOException e) {
+                System.err.println("이미지 로드 중 에러: " + path);
+                e.printStackTrace();
+            }
+        }
     }
 }
