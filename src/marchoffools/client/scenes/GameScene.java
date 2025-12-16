@@ -990,6 +990,10 @@ public class GameScene extends Scene implements NetworkListener {
     public void onGameResult(GameResultMessage msg) {
         System.out.println("GameScene received GameResult: score=" + msg.getTotalScore());
         
-        switchToWithoutHistory(new GameResultScene());
+        SwingUtilities.invokeLater(() -> {
+            GameResultScene resultScene = new GameResultScene(msg);
+            
+            switchToWithoutHistory(resultScene);
+        });
     }
 }

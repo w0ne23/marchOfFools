@@ -1,8 +1,13 @@
 package marchoffools.client.scenes;
 
 import marchoffools.client.core.Scene;
+import marchoffools.client.data.ScoreManager;
+import marchoffools.client.data.ScoreRecord;
 import marchoffools.client.network.NetworkManager;
 import marchoffools.client.ui.Button;
+import marchoffools.common.message.GameResultMessage;
+import marchoffools.common.message.RoomActionMessage;
+import marchoffools.common.protocol.MessageType;
 
 import static marchoffools.client.core.Assets.Backgrounds.DEFAULT;
 import static marchoffools.client.core.Assets.Colors.*;
@@ -23,20 +28,68 @@ import javax.swing.SwingConstants;
 
 public class GameResultScene extends Scene {
 
-    // 추후 실제 데이터 반영 예정
-    private String player1Name = "Player123";
-    private String player2Name = "닉네임";
-    private int totalScore = 932582;
-    private int playTime = 9058; 
-    private int distance = 3768; 
-    
-    private int defeatedMonsters = 532;
-    private int hitMonsters = 478;
-    private int usedBoosters = 23;
-    private int noHitDistance = 1238; 
+    private static final long serialVersionUID = 1L;
 
-    public GameResultScene() {
+    // 게임 결과 데이터
+    private String player1Name;
+    private String player2Name;
+    private int totalScore;
+    private int playTime;        // 초 단위
+    private double distance;     // 미터 단위
+    
+    // 통계 데이터
+    private int obstaclesDestroyed;
+    private int obstaclesAvoided;
+    private int player1Destroyed;
+    private int player2Avoided;
+
+    /**
+     * GameResultMessage를 받는 생성자 (권장)
+     */
+    public GameResultScene(GameResultMessage result) {
         super(DEFAULT);
+        
+        // 메시지에서 데이터 추출
+        this.player1Name = result.getPlayer1Name() != null ? result.getPlayer1Name() : "Player1";
+        this.player2Name = result.getPlayer2Name() != null ? result.getPlayer2Name() : "Player2";
+        this.totalScore = result.getTotalScore();
+        this.playTime = (int)(result.getPlayTime() / 1000);  // ms -> 초
+        this.distance = result.getFinalDistance() / 100.0;   // px -> m (100px = 1m)
+        
+        this.obstaclesDestroyed = result.getObstaclesDestroyed();
+        this.obstaclesAvoided = result.getObstaclesAvoided();
+        this.player1Destroyed = result.getPlayer1Destroyed();
+        this.player2Avoided = result.getPlayer2Avoided();
+        
+        initializeScene();
+        
+        // 점수 저장
+        saveScore();
+    }
+    
+    /**
+     * 간단한 생성자 (이전 버전 호환용)
+     */
+    public GameResultScene(int score, String playerName, int role) {
+        super(DEFAULT);
+        
+        this.totalScore = score;
+        this.player1Name = playerName;
+        this.player2Name = "상대방";
+        this.playTime = 0;
+        this.distance = 0;
+        this.obstaclesDestroyed = 0;
+        this.obstaclesAvoided = 0;
+        this.player1Destroyed = 0;
+        this.player2Avoided = 0;
+        
+        initializeScene();
+        
+        // 점수 저장
+        saveScore();
+    }
+    
+    private void initializeScene() {
         setLayout(null);
         
         createFixedUiElements();
@@ -45,8 +98,27 @@ public class GameResultScene extends Scene {
         setFocusable(false);
     }
     
-    // 실제 데이터를 받는 생성자
-    // public GameResultScene(String p1Name, String p2Name, int score, int time, GameStats stats) { ... }
+    /**
+     * 점수 저장
+     */
+    private void saveScore() {
+        try {
+            ScoreRecord record = new ScoreRecord(
+                player1Name,
+                player2Name,
+                totalScore,
+                playTime,
+                (int) distance,
+                obstaclesDestroyed,
+                obstaclesAvoided
+            );
+            
+            ScoreManager.getInstance().addScore(record);
+            System.out.println("점수 저장 완료: " + totalScore);
+        } catch (Exception e) {
+            System.err.println("점수 저장 실패: " + e.getMessage());
+        }
+    }
     
     private void createFixedUiElements() {
         JLabel lTitle = new JLabel("Game Over!");
@@ -88,63 +160,78 @@ public class GameResultScene extends Scene {
         section.setOpaque(false);
         section.setMaximumSize(new Dimension(Short.MAX_VALUE, 330));
         
-        JPanel leftPanel = createPlayerPanel(player1Name, "🛡️");
+        // 기사 (Player 1)
+        JPanel leftPanel = createPlayerPanel(player1Name, "🛡️", "기사");
         section.add(leftPanel);
         
+        // 중앙 결과
         JPanel centerPanel = createResultInfoPanel();
         section.add(centerPanel);
         
-        JPanel rightPanel = createPlayerPanel(player2Name, "🦄");
+        // 말 (Player 2)
+        JPanel rightPanel = createPlayerPanel(player2Name, "🦄", "말");
         section.add(rightPanel);
         
         return section;
     }
     
-    private JPanel createPlayerPanel(String playerName, String icon) {
+    private JPanel createPlayerPanel(String playerName, String icon, String roleName) {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setOpaque(false);
         panel.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
         
-        panel.add(Box.createRigidArea(new Dimension(0, 20)));
+        panel.add(Box.createRigidArea(new Dimension(0, 10)));
         
+        // 역할 이름
+        JLabel lRole = new JLabel(roleName, SwingConstants.CENTER);
+        lRole.setFont(getFont().deriveFont(16f));
+        lRole.setForeground(GRAY);
+        lRole.setAlignmentX(CENTER_ALIGNMENT);
+        panel.add(lRole);
+        
+        panel.add(Box.createRigidArea(new Dimension(0, 5)));
+        
+        // 플레이어 이름
         JLabel lName = new JLabel(playerName, SwingConstants.CENTER);
         lName.setFont(getFont().deriveFont(Font.BOLD, 22f));
         lName.setForeground(BLACK);
         lName.setAlignmentX(CENTER_ALIGNMENT);
         panel.add(lName);
         
-        panel.add(Box.createRigidArea(new Dimension(0, 40)));
+        panel.add(Box.createRigidArea(new Dimension(0, 30)));
         
+        // 캐릭터 이미지
         try {
             java.awt.Image img = javax.imageio.ImageIO.read(
                 getClass().getResourceAsStream("/assets/testCharacter.png")
             );
             
             if (img != null) {
-                java.awt.Image scaledImg = img.getScaledInstance(200, 200, java.awt.Image.SCALE_SMOOTH);
+                java.awt.Image scaledImg = img.getScaledInstance(180, 180, java.awt.Image.SCALE_SMOOTH);
                 javax.swing.ImageIcon imageIcon = new javax.swing.ImageIcon(scaledImg);
                 
                 JLabel lImage = new JLabel(imageIcon);
                 lImage.setAlignmentX(CENTER_ALIGNMENT);
                 panel.add(lImage);
             } else {
-                JLabel lIcon = new JLabel(icon, SwingConstants.CENTER);
-                lIcon.setFont(getFont().deriveFont(100f));
-                lIcon.setAlignmentX(CENTER_ALIGNMENT);
-                panel.add(lIcon);
+                addFallbackIcon(panel, icon);
             }
         } catch (Exception e) {
             System.err.println("Failed to load testCharacter.png: " + e.getMessage());
-            JLabel lIcon = new JLabel(icon, SwingConstants.CENTER);
-            lIcon.setFont(getFont().deriveFont(100f));
-            lIcon.setAlignmentX(CENTER_ALIGNMENT);
-            panel.add(lIcon);
+            addFallbackIcon(panel, icon);
         }
         
         panel.add(Box.createVerticalGlue());
         
         return panel;
+    }
+    
+    private void addFallbackIcon(JPanel panel, String icon) {
+        JLabel lIcon = new JLabel(icon, SwingConstants.CENTER);
+        lIcon.setFont(getFont().deriveFont(100f));
+        lIcon.setAlignmentX(CENTER_ALIGNMENT);
+        panel.add(lIcon);
     }
     
     private JPanel createResultInfoPanel() {
@@ -155,6 +242,7 @@ public class GameResultScene extends Scene {
         
         panel.add(Box.createVerticalGlue());
         
+        // 플레이 시간
         JLabel lTimer = new JLabel("⏱ " + formatTime(playTime), SwingConstants.CENTER);
         lTimer.setFont(getFont().deriveFont(Font.BOLD, 28f));
         lTimer.setForeground(BLACK);
@@ -163,6 +251,7 @@ public class GameResultScene extends Scene {
         
         panel.add(Box.createRigidArea(new Dimension(0, 20)));
         
+        // 점수 라벨
         JLabel lScoreLabel = new JLabel("Score", SwingConstants.CENTER);
         lScoreLabel.setFont(getFont().deriveFont(20f));
         lScoreLabel.setForeground(GRAY);
@@ -171,6 +260,7 @@ public class GameResultScene extends Scene {
         
         panel.add(Box.createRigidArea(new Dimension(0, 8)));
         
+        // 점수 값
         JLabel lScore = new JLabel(String.format("%,d", totalScore), SwingConstants.CENTER);
         lScore.setFont(getFont().deriveFont(Font.BOLD, 56f));
         lScore.setForeground(BLACK);
@@ -179,7 +269,8 @@ public class GameResultScene extends Scene {
         
         panel.add(Box.createRigidArea(new Dimension(0, 20)));
         
-        JLabel lDistance = new JLabel("▶ " + String.format("%,dm", distance), SwingConstants.CENTER);
+        // 거리
+        JLabel lDistance = new JLabel("▶ " + String.format("%,.0fm", distance), SwingConstants.CENTER);
         lDistance.setFont(getFont().deriveFont(Font.BOLD, 24f));
         lDistance.setForeground(RED);
         lDistance.setAlignmentX(CENTER_ALIGNMENT);
@@ -202,10 +293,11 @@ public class GameResultScene extends Scene {
         statsPanel.setBackground(WHITE);
         statsPanel.setBorder(BorderFactory.createEmptyBorder(20, 30, 20, 30));
         
-        statsPanel.add(createStatItem("처치한 몬스터 수", String.valueOf(defeatedMonsters)));
-        statsPanel.add(createStatItem("회피한 장애물 수", String.valueOf(hitMonsters)));
-        statsPanel.add(createStatItem("사용한 부스터 수", String.valueOf(usedBoosters)));
-        statsPanel.add(createStatItem("No Hit", String.format("%,dm", noHitDistance)));
+        // 실제 통계 데이터 표시
+        statsPanel.add(createStatItem("처치한 몬스터 수", String.valueOf(obstaclesDestroyed)));
+        statsPanel.add(createStatItem("회피한 장애물 수", String.valueOf(obstaclesAvoided)));
+        statsPanel.add(createStatItem("기사 기여 (처치)", String.valueOf(player1Destroyed)));
+        statsPanel.add(createStatItem("말 기여 (회피)", String.valueOf(player2Avoided)));
         
         add(statsPanel);
     }
@@ -242,38 +334,71 @@ public class GameResultScene extends Scene {
         Button bBackToLobby = new Button("대기실로 돌아가기");
         bBackToLobby.setFont(getFont().deriveFont(16f));
         bBackToLobby.setButtonColors(LIGHT_GRAY, WHITE, GRAY);
-        bBackToLobby.addActionListener(e -> {
-            System.out.println("대기실로 돌아가기");
-            goBack();
-        });
+        bBackToLobby.addActionListener(e -> handleBackToLobby());
         buttonPanel.add(bBackToLobby);
         
-        Button bPlayAgain = new Button("게임 종료하기");
-        bPlayAgain.setFont(getFont().deriveFont(16f));
-        bPlayAgain.setButtonColors(LIGHT_GRAY, WHITE, GRAY);
-        bPlayAgain.addActionListener(e -> {
-            System.out.println("게임 종료하기");
-            
-            NetworkManager nm = getNetworkManager();
-            if (nm != null && nm.isConnected()) {
-                nm.disconnect();
-                System.out.println("서버 연결 해제됨");
-            }
-            // TODO: 게임 종료 처리
-            
-            clearHistory();
-            switchToWithoutHistory(new TitleScene());
-        });
-        buttonPanel.add(bPlayAgain);
+        Button bQuit = new Button("게임 종료하기");
+        bQuit.setFont(getFont().deriveFont(16f));
+        bQuit.setButtonColors(LIGHT_GRAY, WHITE, GRAY);
+        bQuit.addActionListener(e -> handleQuit());
+        buttonPanel.add(bQuit);
         
         add(buttonPanel);
+    }
+    
+    /**
+     * 대기실로 돌아가기 처리
+     */
+    private void handleBackToLobby() {
+        System.out.println("대기실로 돌아가기 버튼 클릭");
+        
+        NetworkManager nm = getNetworkManager();
+        if (nm != null && nm.isConnected()) {
+            // 서버에 BACK_TO_LOBBY 요청 전송
+            RoomActionMessage msg = new RoomActionMessage(
+                nm.getPlayerId(),
+                RoomActionMessage.BACK_TO_LOBBY
+            );
+            nm.sendMessage(MessageType.ROOM_ACTION, msg);
+            System.out.println("서버에 BACK_TO_LOBBY 요청 전송");
+            
+            // ⭐ 히스토리 정리 후 LobbyScene으로 전환
+            clearHistory();
+            LobbyScene lobbyScene = new LobbyScene();
+            switchToWithoutHistory(lobbyScene);
+        } else {
+            System.err.println("서버 연결이 없습니다. 타이틀로 이동합니다.");
+            clearHistory();
+            switchToWithoutHistory(new TitleScene());
+        }
+    }
+    
+    /**
+     * 게임 종료 처리
+     */
+    private void handleQuit() {
+        System.out.println("게임 종료하기 버튼 클릭");
+        
+        NetworkManager nm = getNetworkManager();
+        if (nm != null && nm.isConnected()) {
+            nm.disconnect();
+            System.out.println("서버 연결 해제됨");
+        }
+        
+        clearHistory();
+        switchToWithoutHistory(new TitleScene());
     }
     
     private String formatTime(int seconds) {
         int hours = seconds / 3600;
         int minutes = (seconds % 3600) / 60;
         int secs = seconds % 60;
-        return String.format("%d:%02d:%02d", hours, minutes, secs);
+        
+        if (hours > 0) {
+            return String.format("%d:%02d:%02d", hours, minutes, secs);
+        } else {
+            return String.format("%d:%02d", minutes, secs);
+        }
     }
     
     @Override

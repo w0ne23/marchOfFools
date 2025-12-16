@@ -198,7 +198,7 @@ public class Room {
     // 게임 세션 시작
     public void startGame() {
         System.out.println("========================================");
-        System.out.println("🏁 Room.startGame() CALLED");
+        System.out.println("🎮 Room.startGame() CALLED");
         System.out.println("   Room ID: " + roomId);
         System.out.println("   Players: " + players.size());
         System.out.println("========================================");
@@ -216,6 +216,39 @@ public class Room {
         this.gameSession.startGame();
         System.out.println("✅ GameSession.startGame() called");
         System.out.println("========================================");
+    }
+    
+    /**
+     * ⭐ 새 게임을 위한 방 상태 초기화
+     * 게임 종료 후 같은 방에서 다시 게임을 시작할 수 있도록 함
+     */
+    public synchronized void resetForNewGame() {
+        System.out.println("========================================");
+        System.out.println("🔄 Room.resetForNewGame() CALLED");
+        System.out.println("   Room ID: " + roomId);
+        System.out.println("========================================");
+        
+        // 기존 게임 세션 정리
+        if (gameSession != null) {
+            gameSession.stopGame();
+            gameSession = null;
+        }
+        
+        // 방 상태 초기화
+        this.playing = false;
+        this.status = STATUS_WAITING;
+        
+        // 모든 플레이어의 준비 상태 초기화 (역할은 유지)
+        for (PlayerInfo player : players.values()) {
+            player.setReady(false);
+            System.out.println("   - " + player.getPlayerName() + " ready 상태 초기화");
+        }
+        
+        System.out.println("✅ Room reset complete - status: WAITING");
+        System.out.println("========================================");
+        
+        // 클라이언트에 업데이트된 방 정보 전송
+        broadcastRoomInfo(STATUS_WAITING);
     }
     
     // Getters and Setters

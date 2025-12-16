@@ -134,6 +134,10 @@ public class ClientHandler extends Thread {
             	handleStartGame(msg);
                 break;
                 
+            case RoomActionMessage.BACK_TO_LOBBY:
+                handleBackToLobby(msg);
+                break;
+                
             default:
                 sendResponse(ResponseMessage.error(
                     ResponseMessage.INVALID_INPUT,
@@ -508,6 +512,38 @@ public class ClientHandler extends Thread {
         // 5. 변경된 RoomInfo를 모든 플레이어에게 브로드캐스트
         room.broadcastRoomInfo(RoomInfoMessage.GAME_STARTING);
         System.out.println("✓ 모든 플레이어에게 게임 시작 신호 전송 완료");
+    }
+    
+    private void handleBackToLobby(RoomActionMessage msg) {
+        System.out.println("대기실 복귀 요청: " + playerName);
+        
+        // 1. 방에 있는지 확인
+        if (currentRoomId == null) {
+            sendResponse(ResponseMessage.error(
+                ResponseMessage.NOT_IN_ROOM,
+                "방에 입장해 있지 않습니다"
+            ));
+            return;
+        }
+        
+        RoomManager roomManager = server.getRoomManager();
+        Room room = roomManager.getRoom(currentRoomId);
+        
+        if (room == null) {
+            sendResponse(ResponseMessage.error(
+                ResponseMessage.ROOM_NOT_FOUND,
+                "방을 찾을 수 없습니다"
+            ));
+            return;
+        }
+        
+        // 2. 방 상태 초기화 (게임 세션 정리, 준비 상태 리셋)
+        room.resetForNewGame();
+        
+        System.out.println("✓ 대기실 복귀 완료: " + playerName);
+        
+        // 3. 성공 응답
+        sendResponse(ResponseMessage.success("대기실로 복귀했습니다"));
     }
     
     private void handleGameInput(GameInputMessage msg) {

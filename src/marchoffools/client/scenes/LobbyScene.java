@@ -1016,7 +1016,7 @@ public class LobbyScene extends Scene implements NetworkListener {
                 me.getPlayerName(), opponent.getPlayerName(), me.getRole(), opponent.getRole()
             );
             
-            switchTo(gameScene);
+            switchToWithoutHistory(gameScene);
             
         });
     }

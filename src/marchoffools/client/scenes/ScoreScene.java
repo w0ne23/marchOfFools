@@ -1,6 +1,8 @@
 package marchoffools.client.scenes;
 
 import marchoffools.client.core.Scene;
+import marchoffools.client.data.ScoreManager;
+import marchoffools.client.data.ScoreRecord;
 import marchoffools.client.ui.Button;
 
 import static marchoffools.client.core.Assets.Backgrounds.DEFAULT;
@@ -13,6 +15,7 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.GridLayout;
+import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -23,20 +26,10 @@ import javax.swing.SwingConstants;
 
 public class ScoreScene extends Scene {
 
-    // TODO: 실제 점수 데이터로 교체 필요
-    private static class ScoreRecord {
-        String medal;
-        String playerName;
-        String score;
-        String date;
-        
-        ScoreRecord(String medal, String playerName, String score, String date) {
-            this.medal = medal;
-            this.playerName = playerName;
-            this.score = score;
-            this.date = date;
-        }
-    }
+    private static final long serialVersionUID = 1L;
+    private static final int TOP_COUNT = 3;  // 상위 3개만 표시
+    
+    private JPanel mainPanel;
     
     public ScoreScene() {
         super(DEFAULT);
@@ -76,34 +69,41 @@ public class ScoreScene extends Scene {
         int contentW = WINDOW_WIDTH - (contentMargin * 2);
         int contentH = WINDOW_HEIGHT - topMargin - bottomMargin;
         
-        JPanel mainPanel = new JPanel();
+        mainPanel = new JPanel();
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
         mainPanel.setBounds(contentMargin, topMargin, contentW, contentH);
         applySectionStyle(mainPanel);
         
-        // TODO: 실제 데이터로 교체
-        ScoreRecord[] myRecords = {
-            new ScoreRecord("🥇", "Player123", "932,582", "2025/11/06"),
-            new ScoreRecord("🥈", "Player123", "845,921", "2025/11/07"),
-            new ScoreRecord("🥉", "Player123", "321,894", "2024/11/07")
-        };
-        
-        ScoreRecord[] allRecords = {
-            new ScoreRecord("🥇", "Player123", "14,872", "2025/11/07"),
-            new ScoreRecord("🥈", "Player345", "845,921", "2025/11/07"),
-            new ScoreRecord("🥉", "Player345", "549,716", "2024/11/07")
-        };
-        
-        mainPanel.add(createScoreSection("나의 베스트 3", myRecords));
-        mainPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-        mainPanel.add(createHorizontalSeparator());
-        mainPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-        mainPanel.add(createScoreSection("전체 베스트 3", allRecords));
+        refreshScoreData();
         
         add(mainPanel);
     }
     
-    private JPanel createScoreSection(String title, ScoreRecord[] records) {
+    /**
+     * 점수 데이터 새로고침
+     */
+    private void refreshScoreData() {
+        mainPanel.removeAll();
+        
+        ScoreManager manager = ScoreManager.getInstance();
+        
+        // 나의 베스트 기록
+        List<ScoreRecord> myRecords = manager.getCurrentPlayerTopScores(TOP_COUNT);
+        
+        // 전체 베스트 기록
+        List<ScoreRecord> allRecords = manager.getTopScores(TOP_COUNT);
+        
+        mainPanel.add(createScoreSection("나의 베스트 " + TOP_COUNT, myRecords));
+        mainPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+        mainPanel.add(createHorizontalSeparator());
+        mainPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+        mainPanel.add(createScoreSection("전체 베스트 " + TOP_COUNT, allRecords));
+        
+        mainPanel.revalidate();
+        mainPanel.repaint();
+    }
+    
+    private JPanel createScoreSection(String title, List<ScoreRecord> records) {
         JPanel section = new JPanel();
         section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
         section.setOpaque(false);
@@ -113,14 +113,35 @@ public class ScoreScene extends Scene {
         section.add(createSectionTitle(title));
         section.add(Box.createRigidArea(new Dimension(0, 20)));
         
-        for (ScoreRecord record : records) {
-            section.add(createScoreRow(record));
-            section.add(Box.createRigidArea(new Dimension(0, 12)));
+        if (records.isEmpty()) {
+            // 기록이 없을 때 메시지 표시
+            section.add(createEmptyMessage());
+        } else {
+            // 기록 표시
+            String[] medals = {"🥇", "🥈", "🥉"};
+            for (int i = 0; i < records.size(); i++) {
+                String medal = (i < medals.length) ? medals[i] : "🏅";
+                section.add(createScoreRow(medal, records.get(i)));
+                section.add(Box.createRigidArea(new Dimension(0, 12)));
+            }
         }
         
         section.add(Box.createVerticalGlue());
         
         return section;
+    }
+    
+    private JPanel createEmptyMessage() {
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
+        panel.setMaximumSize(new Dimension(Short.MAX_VALUE, 50));
+        
+        JLabel label = new JLabel("아직 기록이 없습니다", SwingConstants.CENTER);
+        label.setFont(getFont().deriveFont(18f));
+        label.setForeground(GRAY);
+        panel.add(label);
+        
+        return panel;
     }
     
     private JPanel createHorizontalSeparator() {
@@ -149,8 +170,7 @@ public class ScoreScene extends Scene {
         return label;
     }
     
-    private JPanel createScoreRow(ScoreRecord record) {
-    	
+    private JPanel createScoreRow(String medal, ScoreRecord record) {
         JPanel row = new JPanel(new BorderLayout());
         row.setOpaque(false);
         row.setMaximumSize(new Dimension(Short.MAX_VALUE, 50));
@@ -161,7 +181,7 @@ public class ScoreScene extends Scene {
         medalPanel.setOpaque(false);
         medalPanel.setPreferredSize(new Dimension(80, 50));
         
-        JLabel lMedal = new JLabel(record.medal);
+        JLabel lMedal = new JLabel(medal);
         lMedal.setFont(getFont().deriveFont(36f));
         medalPanel.add(lMedal);
         
@@ -171,22 +191,22 @@ public class ScoreScene extends Scene {
         JPanel dataPanel = new JPanel(new GridLayout(1, 3));
         dataPanel.setOpaque(false);
         
-        // 1) 플레이어 이름 
-        JLabel lPlayer = new JLabel(record.playerName);
-        lPlayer.setFont(getFont().deriveFont(20f));
+        // 1) 플레이어 이름
+        JLabel lPlayer = new JLabel(record.getPlayerNames());
+        lPlayer.setFont(getFont().deriveFont(18f));
         lPlayer.setForeground(BLACK);
         lPlayer.setHorizontalAlignment(SwingConstants.LEFT);
         dataPanel.add(lPlayer);
         
-        // 2) 점수 
-        JLabel lScore = new JLabel(record.score);
+        // 2) 점수
+        JLabel lScore = new JLabel(record.getFormattedScore());
         lScore.setFont(getFont().deriveFont(Font.BOLD, 28f));
         lScore.setForeground(BLACK);
         lScore.setHorizontalAlignment(SwingConstants.CENTER);
         dataPanel.add(lScore);
         
-        // 3) 날짜 
-        JLabel lDate = new JLabel(record.date);
+        // 3) 날짜
+        JLabel lDate = new JLabel(record.getFormattedDate());
         lDate.setFont(getFont().deriveFont(18f));
         lDate.setForeground(GRAY);
         lDate.setHorizontalAlignment(SwingConstants.RIGHT);
@@ -194,7 +214,7 @@ public class ScoreScene extends Scene {
         
         row.add(dataPanel, BorderLayout.CENTER);
         
-        // 우측 여백을 위한 빈 패널 추가 
+        // 우측 여백용 빈 패널
         JPanel rightMargin = new JPanel();
         rightMargin.setOpaque(false);
         rightMargin.setPreferredSize(new Dimension(32, 50)); 

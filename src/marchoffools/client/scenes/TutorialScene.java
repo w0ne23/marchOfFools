@@ -23,7 +23,7 @@ import javax.swing.SwingUtilities;
 
 import marchoffools.client.core.ResourceManager;
 import marchoffools.client.core.Scene;
-import marchoffools.client.core.Skill;
+//import marchoffools.client.core.Skill;
 import marchoffools.client.ui.Button;
 
 public class TutorialScene extends Scene {
@@ -85,7 +85,7 @@ public class TutorialScene extends Scene {
         createScoreTimeSection();
         createEmotionSection();
         createGameCanvas();
-        createSkillUseSection();
+//        createSkillUseSection();
         
         System.out.println("TutorialScene initialized (Tutorial Mode):");
         System.out.println("  My Name: " + myName + " [" + getRoleName(myRole) + "]");
@@ -254,42 +254,42 @@ public class TutorialScene extends Scene {
         return button;
     }
     
-    private void createSkillUseSection() {
-        int buttonW = 100;
-        int buttonH = 70;
-        int gap = 10;
-        int margin = 30;
-        
-        int startX = WINDOW_WIDTH - (buttonW * 3 + gap * 2 + margin);
-        int startY = WINDOW_HEIGHT - buttonH - margin;
-        
-        Skill[] skills = {Skill.SHIELD, Skill.SPECIAL, Skill.INVINCIBLE};
-        
-        for (int i = 0; i < skills.length; i++) {
-            Button bSkill = createSkillButton(skills[i]);
-            bSkill.setBounds(startX + i * (buttonW + gap), startY, buttonW, buttonH);
-            add(bSkill);
-        }
-    }
+//    private void createSkillUseSection() {
+//        int buttonW = 100;
+//        int buttonH = 70;
+//        int gap = 10;
+//        int margin = 30;
+//        
+//        int startX = WINDOW_WIDTH - (buttonW * 3 + gap * 2 + margin);
+//        int startY = WINDOW_HEIGHT - buttonH - margin;
+//        
+//        Skill[] skills = {Skill.SHIELD, Skill.SPECIAL, Skill.INVINCIBLE};
+//        
+//        for (int i = 0; i < skills.length; i++) {
+//            Button bSkill = createSkillButton(skills[i]);
+//            bSkill.setBounds(startX + i * (buttonW + gap), startY, buttonW, buttonH);
+//            add(bSkill);
+//        }
+//    }
     
-    private Button createSkillButton(Skill skill) {
-        Button button = new Button(skill.getDisplayName());
-        button.setFont(getFont().deriveFont(Font.BOLD, 18f));
-        button.setForeground(BLACK);
-        button.setPreferredSize(new Dimension(100, 70));
-        button.setMinimumSize(new Dimension(100, 70));
-        button.setMaximumSize(new Dimension(100, 70));
-
-        button.setButtonColors(WHITE, WHITE.brighter(), LIGHT_GRAY);
-        button.setBorder(BorderFactory.createLineBorder(GRAY, 3));
-
-        button.addActionListener(e -> {
-            useSkill(skill);
-            System.out.println("Used skill (Local): " + skill.getDisplayName());
-        });
-
-        return button;
-    }
+//    private Button createSkillButton(Skill skill) {
+//        Button button = new Button(skill.getDisplayName());
+//        button.setFont(getFont().deriveFont(Font.BOLD, 18f));
+//        button.setForeground(BLACK);
+//        button.setPreferredSize(new Dimension(100, 70));
+//        button.setMinimumSize(new Dimension(100, 70));
+//        button.setMaximumSize(new Dimension(100, 70));
+//
+//        button.setButtonColors(WHITE, WHITE.brighter(), LIGHT_GRAY);
+//        button.setBorder(BorderFactory.createLineBorder(GRAY, 3));
+//
+//        button.addActionListener(e -> {
+//            useSkill(skill);
+//            System.out.println("Used skill (Local): " + skill.getDisplayName());
+//        });
+//
+//        return button;
+//    }
     
     // ==========================================
     //        게임 로직
@@ -329,13 +329,13 @@ public class TutorialScene extends Scene {
         });
     }
     
-    private void useSkill(Skill skill) {
-        switch (skill) {
-            case SHIELD: break;
-            case SPECIAL: break;
-            case INVINCIBLE: break;
-        }
-    }
+//    private void useSkill(Skill skill) {
+//        switch (skill) {
+//            case SHIELD: break;
+//            case SPECIAL: break;
+//            case INVINCIBLE: break;
+//        }
+//    }
     
     private String getRoleName(int role) {
         switch (role) {

@@ -51,4 +51,12 @@ public class ObstacleSpawner {
         
         return data;
     }
+    
+    /**
+     * 스포너 상태 초기화 (새 게임 시작 시)
+     */
+    public void reset() {
+        lastSpawnTime = 0;
+        System.out.println("[Spawner] Reset complete");
+    }
 }

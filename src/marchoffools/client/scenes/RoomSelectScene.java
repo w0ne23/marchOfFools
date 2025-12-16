@@ -8,6 +8,7 @@ import marchoffools.client.network.NetworkManager;
 import marchoffools.client.network.NetworkListener;
 import marchoffools.client.core.Scene;
 import marchoffools.client.ui.Button;
+import marchoffools.client.data.ScoreManager;
 
 import static marchoffools.client.core.Assets.Backgrounds.DEFAULT;
 import static marchoffools.client.core.Assets.Colors.*;
@@ -86,25 +87,6 @@ public class RoomSelectScene extends Scene implements NetworkListener {
         return nm;
     }
 
-
-    @Override
-    public void onRoomInfo(RoomInfoMessage msg) {
-        System.out.println("✅ RoomSelectScene received RoomInfo");
-
-        SwingUtilities.invokeLater(() -> {
-            // 로딩 화면 숨김
-            pLoading.setVisible(false);
-            pMenu.setVisible(true);
-
-            // LobbyScene으로 전환
-            LobbyScene lobbyScene = new LobbyScene();
-            switchTo(lobbyScene);
-
-            // 전환 직후 RoomInfo 전달
-            lobbyScene.updateRoomInfo(msg);
-        });
-    }
-
     // 연결 보장 메서드
     private boolean ensureConnected() {
         System.out.println("ensureConnected() called");
@@ -155,6 +137,9 @@ public class RoomSelectScene extends Scene implements NetworkListener {
 
         if (success) {
             System.out.println("서버 연결 성공!");
+            
+            ScoreManager.getInstance().setCurrentPlayerName(playerName);
+            System.out.println("ScoreManager에 플레이어 이름 설정: " + playerName);
         } else {
             System.out.println("서버 연결 실패");
         }
@@ -396,13 +381,14 @@ public class RoomSelectScene extends Scene implements NetworkListener {
 
         nm.sendMessage(MessageType.ROOM_ACTION, msg);
     }
-
+    
     @Override
     public void onRoomInfo(RoomInfoMessage msg) {
-        System.out.println("RoomSelectScene received RoomInfo - switching to LobbyScene");
+        System.out.println("RoomSelectScene received RoomInfo");
 
         SwingUtilities.invokeLater(() -> {
             pLoading.setVisible(false);
+            pMenu.setVisible(true);
 
             LobbyScene lobbyScene = new LobbyScene();
             switchToWithoutHistory(lobbyScene);

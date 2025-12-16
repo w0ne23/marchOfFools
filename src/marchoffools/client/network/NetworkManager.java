@@ -232,7 +232,7 @@ public class NetworkManager {
                 } else {
                     // 이미 LobbyScene인데 listener가 없는 경우
                     System.err.println("Warning: RoomInfo received but no listener set");
-                    System.err.println("Current scene should handle room
+                    System.err.println("Current scene should handle room");
                     ((LobbyScene) currentScene).updateRoomInfo(msg);
                 }
             }
