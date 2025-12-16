@@ -1,5 +1,6 @@
 package marchoffools.client.scenes;
 
+import marchoffools.common.config.ServerConfig;
 import marchoffools.common.message.RoomInfoMessage;
 
 import marchoffools.client.network.NetworkManager;
@@ -126,7 +127,7 @@ public class RoomSelectScene extends Scene implements NetworkListener {
         
         System.out.println("서버 연결 시도: " + playerName);
         
-        boolean success = nm.connect("localhost", 12345, playerName);
+        boolean success = nm.connect(ServerConfig.getServerHost(), ServerConfig.getServerPort(), playerName);
 
         if (success) {
             System.out.println("서버 연결 성공!");
