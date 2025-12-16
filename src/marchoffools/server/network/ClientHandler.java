@@ -518,17 +518,14 @@ public class ClientHandler extends Thread {
             case GameInputMessage.JUMP:
                 // 점프 처리
                 session.getState().startJump();
-                System.out.println("✓ Jump: " + playerName);
+                System.out.println("✔ Jump: " + playerName);
                 break;
                 
             case GameInputMessage.SLIDE:
-                // 슬라이드 처리
+                // 슬라이드 처리 (키 누름/뗌)
                 boolean isSliding = msg.getValue() == 1;
-                session.getState().setCharState(
-                    isSliding ? CharacterController.STATE_SLIDING 
-                              : CharacterController.STATE_IDLE
-                );
-                System.out.println("✓ Slide " + (isSliding ? "ON" : "OFF") + ": " + playerName);
+                session.getState().getCharController().setSliding(isSliding);
+                System.out.println("✔ Slide " + (isSliding ? "ON" : "OFF") + ": " + playerName);
                 break;
                 
             case GameInputMessage.USE_ITEM:
@@ -538,7 +535,6 @@ public class ClientHandler extends Thread {
                 // 쿨타임 중
                 if (!session.getState().canUseSkill(skillId)) {
                     long remainingCooldown = session.getState().getRemainingCooldown(skillId);
-                    // log
                     System.out.println("✗ Skill cooldown: " + getSkillName(skillId) 
                         + " (" + playerName + ") - " + (remainingCooldown / 1000.0) + "s remaining");
                     return;
@@ -546,10 +542,11 @@ public class ClientHandler extends Thread {
                 
                 session.getState().useSkill(skillId);
                 session.getState().activateSkill(skillId);
-                System.out.println("✓ Skill used: " + getSkillName(skillId) + " (" + playerName + ")");
+                System.out.println("✔ Skill used: " + getSkillName(skillId) + " (" + playerName + ")");
                 break;
                 
             case GameInputMessage.EMOTION:
+                // 감정 표현은 그냥 브로드캐스트
                 break;
         }
         

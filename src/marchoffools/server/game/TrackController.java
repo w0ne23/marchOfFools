@@ -5,23 +5,15 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import marchoffools.common.message.GameStateMessage.ObstacleData;
 import marchoffools.common.model.ObstacleType;
+import marchoffools.common.model.GameConstants;
+import marchoffools.common.model.GameSkill;
 
 /**
  * 게임 트랙 및 장애물 관리 컨트롤러
  */
 public class TrackController {
 
-    private static final double SCROLL_SPEED = 200.0; // 초당 픽셀
-    private static final int PLAYER_X = 100; // 플레이어 고정 X 좌표
-    private static final int PLAYER_WIDTH = 50;
-    private static final int PLAYER_HEIGHT = 50;
-    private static final int OBSTACLE_WIDTH = 50;
-    private static final int OBSTACLE_HEIGHT = 50;
-
-    // ========== 스킬 범위 상수 ==========
-    private static final int SHOUT_RANGE = 1366;     // 외침: 화면 전체
-    private static final int THRUST_RANGE = 150;     // 찌르기: 150px
-    private static final int SLASH_RANGE = 100;      // 베기: 100px
+    private static final double SCROLL_SPEED = 400.0; // 초당 픽셀
 
     private Room room;
     private CharacterController charController;
@@ -31,6 +23,9 @@ public class TrackController {
     private double scrollSpeed = SCROLL_SPEED;
     private int score = 0;
     private boolean gameOver = false;
+    
+    // 점수 계산용
+    private double lastScoredDistance = 0.0;
     
     // 통계
     private int obstaclesDestroyed = 0;
@@ -49,14 +44,38 @@ public class TrackController {
         // 거리 증가
         distance += scrollSpeed * deltaTime;
         
+        // 거리 기반 점수 추가
+        updateDistanceScore();
+        
         // 장애물 이동
         updateObstacles(deltaTime);
         
-        // 충돌 체크
-        checkCollisions();
+        // 스킬과 몬스터 충돌 체크
+        checkSkillCollisions();
+        
+        // 캐릭터와 장애물 충돌 체크
+        if (checkCharacterCollision()) {
+            gameOver = true;
+            System.out.println("[TrackController] Game Over - Character collision");
+        }
         
         // 화면 밖 장애물 제거
         removeOffscreenObstacles();
+    }
+    
+    /**
+     * 거리 기반 점수 업데이트
+     * 100px(1m)마다 10점 추가
+     */
+    private void updateDistanceScore() {
+        double distanceTraveled = distance - lastScoredDistance;
+        
+        if (distanceTraveled >= 100.0) {
+            int meters = (int)(distanceTraveled / 100.0);
+            score += meters * 10;
+            lastScoredDistance += meters * 100.0;
+            System.out.println("[Score] Distance bonus: +" + meters + " (" + (int)(distance/100) + "m traveled)");
+        }
     }
 
     /**
@@ -67,175 +86,128 @@ public class TrackController {
             obs.setX(obs.getX() - scrollSpeed * deltaTime);
         }
     }
-
+    
     /**
-     * 충돌 체크
+     * 캐릭터와 모든 장애물의 충돌 체크
+     * 역할 구분 없이 충돌 시 게임 오버
      */
-    private void checkCollisions() {
+    private boolean checkCharacterCollision() {
+        // 캐릭터가 무적 상태면 충돌 무시
+        if (charController.isInvincible()) {
+            return false;
+        }
+        
+        // 캐릭터 히트박스
+        double charX = GameConstants.CHARACTER_X;
+        double charY = charController.getPlayerY();
+        int charW = GameConstants.CHARACTER_WIDTH;
+        int charH = GameConstants.CHARACTER_HEIGHT;
+        
+        // 슬라이드 중일 때 높이 감소
+        if (charController.getCharState() == CharacterController.STATE_SLIDING) {
+            charH = (int)(GameConstants.CHARACTER_HEIGHT - GameConstants.SLIDE_HEIGHT);
+            charY += GameConstants.SLIDE_HEIGHT;
+        }
+        
+        // 모든 장애물과 충돌 체크
         for (ObstacleData obs : obstacles) {
             if (obs.isDestroyed()) continue;
             
             ObstacleType type = ObstacleType.getById(obs.getType());
             
-            if (type.isObstacle()) {
-                // 장애물: 말 담당 (점프/슬라이드로 회피)
-                if (isCollidingWithPlayer(obs)) {
-                    gameOver = true;
-                    System.out.println("[TrackController] Collision with " + type.name() + " - Game Over");
-                }
-            } else if (type.isMonster()) {
-                // 몬스터: 기사 담당 (스킬로 처치)
-                if (isMonsterInRange(obs)) {
-                    resolveMonsterCollision(obs);
-                }
-            }
-        }
-    }
-
-    /**
-     * 플레이어와 장애물 AABB 충돌 체크
-     */
-    private boolean isCollidingWithPlayer(ObstacleData obs) {
-        // 무적 상태면 충돌 안 함
-        if (charController.isInvincible()) return false;
-        
-        double playerY = charController.getPlayerY();
-        
-        // 플레이어 바운딩 박스
-        double playerLeft = PLAYER_X;
-        double playerRight = PLAYER_X + PLAYER_WIDTH;
-        double playerTop = playerY;
-        double playerBottom = playerY + PLAYER_HEIGHT;
-        
-        // 장애물 바운딩 박스
-        double obsLeft = obs.getX();
-        double obsRight = obs.getX() + OBSTACLE_WIDTH;
-        double obsTop = obs.getY();
-        double obsBottom = obs.getY() + OBSTACLE_HEIGHT;
-        
-        // AABB 충돌 검사
-        boolean xOverlap = playerRight > obsLeft && playerLeft < obsRight;
-        boolean yOverlap = playerBottom > obsTop && playerTop < obsBottom;
-        
-        return xOverlap && yOverlap;
-    }
-
-    /**
-     * 몬스터가 스킬 범위 내에 있는지 체크
-     */
-    private boolean isMonsterInRange(ObstacleData obs) {
-        // 무적 상태면 충돌 안 함
-        if (charController.isInvincible()) return false;
-        
-        ObstacleType type = ObstacleType.getById(obs.getType());
-        if (!type.isMonster()) return false;
-        
-        // Y축 체크 (몬스터가 플레이어와 같은 높이에 있는지)
-        double playerY = charController.getPlayerY();
-        double playerTop = playerY;
-        double playerBottom = playerY + PLAYER_HEIGHT;
-        double monsterTop = obs.getY();
-        double monsterBottom = obs.getY() + OBSTACLE_HEIGHT;
-        
-        boolean yOverlap = playerBottom > monsterTop && playerTop < monsterBottom;
-        if (!yOverlap) return false;
-        
-        // 플레이어 오른쪽 끝
-        double playerRight = PLAYER_X + PLAYER_WIDTH;
-        
-        // 몬스터 왼쪽 끝
-        double monsterLeft = obs.getX();
-        
-        // 1. 외침 스킬: 화면 전체 (Y축만 체크하면 됨)
-        if (charController.hasActiveSkill(CharacterController.SKILL_SHOUT)) {
-            // 화면 내에 있는 모든 몬스터
-            if (obs.getX() >= -OBSTACLE_WIDTH && obs.getX() <= SHOUT_RANGE) {
-                return true;
+            // AABB 충돌 체크
+            if (isColliding(charX, charY, charW, charH,
+                           obs.getX(), obs.getY(), type.getWidth(), type.getHeight())) {
+                System.out.println("[Collision] Character hit obstacle: " + type.getDisplayName());
+                return true; // 게임 오버
             }
         }
         
-        // 2. SOFT_MONSTER: 베기 스킬
-        if (type == ObstacleType.SOFT_MONSTER) {
-            if (charController.hasActiveSkill(CharacterController.SKILL_SLASH)) {
-                // 베기 범위: 플레이어 오른쪽 끝에서 100px
-                double slashRight = playerRight + SLASH_RANGE;
+        return false;
+    }
+
+    /**
+     * 활성화된 스킬과 몬스터 충돌 체크
+     * y축은 우선 무시하도록 구현(아직 밸런싱하지 않았음)
+     */
+    private void checkSkillCollisions() {
+        boolean[] activeSkills = charController.getActiveSkills();
+        
+        double charX = GameConstants.CHARACTER_X;
+        int charW = GameConstants.CHARACTER_WIDTH;
+        
+        for (ObstacleData obs : obstacles) {
+            if (obs.isDestroyed()) continue;
+            
+            ObstacleType type = ObstacleType.getById(obs.getType());
+            
+            // 몬스터가 아니면 스킬로 처치 불가
+            if (!type.isMonster()) continue;
+            
+            boolean destroyed = false;
+            int points = 0;
+            
+            // 외침(0) - 화면 전체, 모든 몬스터
+            if (activeSkills[GameSkill.SKILL_SHOUT]) {
+                if (obs.getX() >= 0 && obs.getX() <= GameConstants.GAME_WIDTH) {
+                    destroyed = true;
+                    points = type.getScore();
+                    System.out.println("[Skill] Shout destroyed " + type.getDisplayName() + " (+" + points + ")");
+                }
+            }
+            
+            // 찌르기(1) - HARD
+            if (!destroyed && activeSkills[GameSkill.SKILL_THRUST]) {
+                double thrustX = charX + charW;
+                double thrustY = 0;
+                int thrustW = GameConstants.THRUST_RANGE;
+                int thrustH = GameConstants.GAME_HEIGHT;  // 화면 전체 높이
                 
-                // 몬스터가 베기 범위 내에 있는지
-                if (monsterLeft >= playerRight && monsterLeft <= slashRight) {
-                    return true;
+                if (isColliding(thrustX, thrustY, thrustW, thrustH,
+                              obs.getX(), obs.getY(), type.getWidth(), type.getHeight())) {
+                    if (type == ObstacleType.HARD_MONSTER) {
+                        destroyed = true;
+                        points = type.getScore();
+                        System.out.println("[Skill] Thrust destroyed " + type.getDisplayName() + " (+" + points + ")");
+                    }
                 }
             }
-        }
-        
-        // 3. HARD_MONSTER: 찌르기 스킬
-        if (type == ObstacleType.HARD_MONSTER) {
-            if (charController.hasActiveSkill(CharacterController.SKILL_THRUST)) {
-                // 찌르기 범위: 플레이어 오른쪽 끝에서 150px
-                double thrustRight = playerRight + THRUST_RANGE;
+            
+            // 베기(2) - SOFT
+            if (!destroyed && activeSkills[GameSkill.SKILL_SLASH]) {
+                double slashX = charX + charW;
+                double slashY = 0;
+                int slashW = GameConstants.SLASH_RANGE;
+                int slashH = GameConstants.GAME_HEIGHT;  // 화면 전체 높이
                 
-                // 몬스터가 찌르기 범위 내에 있는지
-                if (monsterLeft >= playerRight && monsterLeft <= thrustRight) {
-                    return true;
+                if (isColliding(slashX, slashY, slashW, slashH,
+                              obs.getX(), obs.getY(), type.getWidth(), type.getHeight())) {
+                    if (type == ObstacleType.SOFT_MONSTER) {
+                        destroyed = true;
+                        points = type.getScore();
+                        System.out.println("[Skill] Slash destroyed " + type.getDisplayName() + " (+" + points + ")");
+                    }
                 }
             }
+            
+            // 처치 성공 처리
+            if (destroyed) {
+                obs.setDestroyed(true);
+                obstaclesDestroyed++;
+                score += points;
+            }
         }
-        
-        // 4. 스킬 없이 플레이어와 충돌했는지 (AABB)
-        double playerLeft = PLAYER_X;
-        double monsterRight = obs.getX() + OBSTACLE_WIDTH;
-        
-        boolean xOverlap = playerRight > monsterLeft && playerLeft < monsterRight;
-        
-        return xOverlap;
     }
 
     /**
-     * 몬스터 충돌 해결
+     * AABB 충돌 체크 유틸리티
      */
-    private void resolveMonsterCollision(ObstacleData obs) {
-        ObstacleType type = ObstacleType.getById(obs.getType());
-        boolean destroyed = false;
-        int points = 0;
-        
-        double playerRight = PLAYER_X + PLAYER_WIDTH;
-        double monsterLeft = obs.getX();
-        
-        // 외침 스킬: 모든 몬스터 처치
-        if (charController.hasActiveSkill(CharacterController.SKILL_SHOUT)) {
-            if (obs.getX() >= -OBSTACLE_WIDTH && obs.getX() <= SHOUT_RANGE) {
-                destroyed = true;
-                points = (type == ObstacleType.BOSS_MONSTER) ? 500 : 200;
-            }
-        }
-        // SOFT_MONSTER: 베기로 처치
-        else if (type == ObstacleType.SOFT_MONSTER && 
-            charController.hasActiveSkill(CharacterController.SKILL_SLASH)) {
-            double slashRight = playerRight + SLASH_RANGE;
-            if (monsterLeft >= playerRight && monsterLeft <= slashRight) {
-                destroyed = true;
-                points = 200;
-            }
-        }
-        // HARD_MONSTER: 찌르기로 처치
-        else if (type == ObstacleType.HARD_MONSTER && 
-            charController.hasActiveSkill(CharacterController.SKILL_THRUST)) {
-            double thrustRight = playerRight + THRUST_RANGE;
-            if (monsterLeft >= playerRight && monsterLeft <= thrustRight) {
-                destroyed = true;
-                points = 200;
-            }
-        }
-        
-        if (destroyed) {
-            obs.setDestroyed(true);
-            obstaclesDestroyed++;
-            score += points;
-            System.out.println("[TrackController] Destroyed " + type.name() + " (+" + points + ")");
-        } else {
-            // 스킬 없이 충돌 - 게임 오버
-            gameOver = true;
-            System.out.println("[TrackController] Collision with " + type.name() + " without skill - Game Over");
-        }
+    private boolean isColliding(double x1, double y1, int w1, int h1,
+                               double x2, double y2, int w2, int h2) {
+        return x1 < x2 + w2 &&
+               x1 + w1 > x2 &&
+               y1 < y2 + h2 &&
+               y1 + h1 > y2;
     }
 
     /**
@@ -243,19 +215,20 @@ public class TrackController {
      */
     private void removeOffscreenObstacles() {
         obstacles.removeIf(obs -> {
+            ObstacleType type = ObstacleType.getById(obs.getType());
+            
             // 화면 왼쪽 밖으로 나갔고, 아직 파괴되지 않았다면 회피 성공
-            if (obs.getX() + OBSTACLE_WIDTH < 0 && !obs.isDestroyed()) {
-                ObstacleType type = ObstacleType.getById(obs.getType());
-                
-                // 장애물: 회피 성공
+            if (obs.getX() + type.getWidth() < 0 && !obs.isDestroyed()) {
+                // 장애물(말 담당): 회피 성공
                 if (type.isObstacle()) {
                     obstaclesAvoided++;
-                    score += 100;
-                    System.out.println("[TrackController] Avoided " + type.name() + " (+100)");
+                    score += 100; // 성공적으로 회피
+                    System.out.println("[TrackController] Avoided " + type.getDisplayName() + " (+100)");
                 }
-                // 몬스터: 그냥 지나침 (점수 없음)
+                // 몬스터(기사 담당): 그냥 지나침 (처치 실패는 점수 없음)
             }
-            return obs.getX() + OBSTACLE_WIDTH < 0;
+            
+            return obs.getX() + type.getWidth() < 0;
         });
     }
 
@@ -266,7 +239,7 @@ public class TrackController {
         obstacles.add(obstacle);
     }
 
-    // ========== Getters ==========
+    // ========== Getters and Setters ==========
 
     public double getDistance() {
         return distance;
@@ -311,5 +284,8 @@ public class TrackController {
         obstaclesDestroyed = 0;
         obstaclesAvoided = 0;
         obstacles.clear();
+        lastScoredDistance = 0.0;
+        
+        System.out.println("[TrackController] Reset complete - score system initialized");
     }
 }

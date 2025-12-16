@@ -195,16 +195,27 @@ public class Room {
                allPlayersReady();
     }
     
-    // 게임 시작
+    // 게임 세션 시작
     public void startGame() {
+        System.out.println("========================================");
+        System.out.println("🏁 Room.startGame() CALLED");
+        System.out.println("   Room ID: " + roomId);
+        System.out.println("   Players: " + players.size());
+        System.out.println("========================================");
+        
         this.playing = true;
         this.status = STATUS_PLAYING;
-        System.out.println("방 " + roomId + " 게임 시작!");
+        System.out.println("✅ Room status set to PLAYING");
         
         broadcastRoomInfo(STATUS_PLAYING);
+        System.out.println("✅ RoomInfo broadcasted");
         
         this.gameSession = new GameSession(this);
-        this.gameSession.startGame(); 
+        System.out.println("✅ GameSession created");
+        
+        this.gameSession.startGame();
+        System.out.println("✅ GameSession.startGame() called");
+        System.out.println("========================================");
     }
     
     // Getters and Setters

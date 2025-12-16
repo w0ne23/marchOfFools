@@ -11,7 +11,7 @@ public class GameStateMessage extends Message {
     private String roomId;
     private double distance;
     private int score;
-    private int remainingTime;
+    private int playTime;
     
     // ========== 캐릭터 상태 ==========
     private double playerY;                 // Y좌표
@@ -62,12 +62,12 @@ public class GameStateMessage extends Message {
         this.score = score;
     }
     
-    public int getRemainingTime() {
-        return remainingTime;
+    public int getPlayTime() {
+        return playTime;
     }
     
-    public void setRemainingTime(int remainingTime) {
-        this.remainingTime = remainingTime;
+    public void setPlayTime(int playTime) {
+        this.playTime = playTime;
     }
     
     public double getPlayerY() {

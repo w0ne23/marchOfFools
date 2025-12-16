@@ -7,7 +7,7 @@ public class PlayerInfo implements Serializable {
 
     private String playerId;
     private String playerName;
-    private int role;          // 같은 캐릭터를 조종하는 2인의 역할 (기사/말)
+    private int role;
     private boolean ready;
     private int score;
 

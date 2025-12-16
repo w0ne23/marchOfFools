@@ -7,15 +7,18 @@ import java.awt.Color;
 import java.awt.BasicStroke;
 import java.awt.Font;
 
+import marchoffools.client.core.ResourceManager;
+
 /**
  * 게임 내 모든 시각적 객체를 표현하는 통합 클래스
  */
 public class Sprite {
     
     // 타입 상수
+	// 위치가 적절하지 않은 것 같음.
     public static final int TYPE_PLAYER = 0;
     public static final int TYPE_OBSTACLE = 1;
-    public static final int TYPE_SKILL_RANGE = 2;
+    public static final int TYPE_SKILL = 2;
     
     // 위치 및 크기
     protected double x;
@@ -25,12 +28,13 @@ public class Sprite {
     
     // 이미지
     protected Image image;
+    protected String imageKey;  // ResourceManager의 키
     
     // 공통 속성
     protected boolean visible;
     protected int type;
     
-    // 색상 (이미지 없을 때)
+    // 대체 색상(이미지가 없을 떄)
     protected Color fillColor;
     protected Color strokeColor;
     protected int strokeWidth;
@@ -57,9 +61,13 @@ public class Sprite {
         this.labelColor = Color.WHITE;
     }
     
-    /**
-     * 스프라이트 그리기
-     */
+    // ResourceManager를 통해 이미지 설정
+    public void setImage(String key) {
+        this.image = ResourceManager.getImage(key);
+    }
+    
+    // 스프라이트 그리기
+    // 추후 분기 없이 구현....
     public void draw(Graphics2D g2d) {
         if (!visible) return;
         
@@ -73,15 +81,12 @@ public class Sprite {
             case TYPE_OBSTACLE:
                 drawObstacle(g2d, ix, iy);
                 break;
-            case TYPE_SKILL_RANGE:
+            case TYPE_SKILL:
                 drawSkillRange(g2d, ix, iy);
                 break;
         }
     }
     
-    /**
-     * 플레이어 그리기
-     */
     private void drawPlayer(Graphics2D g2d, int ix, int iy) {
         // 무적 상태 표시
         if (invincible) {
@@ -100,26 +105,32 @@ public class Sprite {
             }
         }
         
+        // 이미지 또는 색상
+        // 사각 히트박스라 이미지가 히트박스보다 커야 판정이 괜찮아짐
+        // color 하드코딩... 캐릭터 선택지 늘리면 GameCharacter 클래스로 저장?
         if (image != null) {
-            g2d.drawImage(image, ix, iy, width, height, null);
+            int displayWidth = (int)(width * 1.2);
+            int displayHeight = (int)(height * 1.2);
+            int offsetX = (width - displayWidth) / 2;
+            int offsetY = (height - displayHeight) / 2;
+            g2d.drawImage(image, ix + offsetX, iy + offsetY, displayWidth, displayHeight, null);
         } else {
-            // 기본 색상
             g2d.setColor(fillColor != null ? fillColor : new Color(120, 170, 255));
             g2d.fillRect(ix, iy, width, height);
         }
-        
-        // 테두리
-        g2d.setColor(Color.WHITE);
-        g2d.setStroke(new BasicStroke(2));
-        g2d.drawRect(ix, iy, width, height);
-        
-        // 라벨
-        if (label != null) {
-            g2d.setFont(new Font("SansSerif", Font.BOLD, 12));
-            g2d.setColor(labelColor);
-            g2d.drawString(label, ix + 5, iy + height / 2);
-        }
-        
+//        
+//        // 테두리
+//        g2d.setColor(Color.WHITE);
+//        g2d.setStroke(new BasicStroke(2));
+//        g2d.drawRect(ix, iy, width, height);
+//        
+//        // 라벨
+//        if (label != null) {
+//            g2d.setFont(new Font("SansSerif", Font.BOLD, 12));
+//            g2d.setColor(labelColor);
+//            g2d.drawString(label, ix + 5, iy + height / 2);
+//        }
+//        
         // 상태 표시
         String stateText = getPlayerStateText();
         if (!stateText.isEmpty()) {
@@ -127,50 +138,47 @@ public class Sprite {
         }
     }
     
-    /**
-     * 장애물 그리기
-     */
     private void drawObstacle(Graphics2D g2d, int ix, int iy) {
         if (destroyed) return;
         
+        // 이미지 또는 색상
         if (image != null) {
-            g2d.drawImage(image, ix, iy, width, height, null);
+            int displayWidth = (int)(width * 1.2);
+            int displayHeight = (int)(height * 1.2);
+            int offsetX = (width - displayWidth) / 2;
+            int offsetY = (height - displayHeight) / 2;
+            g2d.drawImage(image, ix + offsetX, iy + offsetY, displayWidth, displayHeight, null);
         } else {
             // 타입별 색상
             Color color = getObstacleColor();
             g2d.setColor(color);
             g2d.fillRect(ix, iy, width, height);
         }
-        
-        // 테두리
-        g2d.setColor(Color.WHITE);
-        g2d.setStroke(new BasicStroke(2));
-        g2d.drawRect(ix, iy, width, height);
-        
-        // 타입 라벨
-        if (label != null) {
-            g2d.setFont(new Font("SansSerif", Font.BOLD, 14));
-            g2d.setColor(labelColor);
-            
-            int textWidth = g2d.getFontMetrics().stringWidth(label);
-            int textX = ix + (width - textWidth) / 2;
-            int textY = iy + height / 2 + 5;
-            
-            g2d.drawString(label, textX, textY);
-        }
+//        
+//        // 테두리
+//        g2d.setColor(Color.WHITE);
+//        g2d.setStroke(new BasicStroke(2));
+//        g2d.drawRect(ix, iy, width, height);
+//        
+//        // 타입 라벨
+//        if (label != null) {
+//            g2d.setFont(new Font("SansSerif", Font.BOLD, 14));
+//            g2d.setColor(labelColor);
+//            
+//            int textWidth = g2d.getFontMetrics().stringWidth(label);
+//            int textX = ix + (width - textWidth) / 2;
+//            int textY = iy + height / 2 + 5;
+//            
+//            g2d.drawString(label, textX, textY);
+//        }
     }
     
-    /**
-     * 스킬 범위 그리기
-     */
     private void drawSkillRange(Graphics2D g2d, int ix, int iy) {
-        // 반투명 채우기
+        // 반투명 색상 채우기
         if (fillColor != null) {
             g2d.setColor(fillColor);
             g2d.fillRect(ix, iy, width, height);
         }
-        
-        // 테두리
         if (strokeColor != null) {
             g2d.setColor(strokeColor);
             
@@ -183,27 +191,25 @@ public class Sprite {
             
             g2d.drawRect(ix, iy, width, height);
         }
-        
-        // 스킬 이름
-        if (label != null) {
-            g2d.setFont(new Font("SansSerif", Font.BOLD, 16));
-            
-            int textX = ix + width / 2 - label.length() * 4;
-            int textY = iy + height / 2 + 5;
-            
-            // 텍스트 배경
-            g2d.setColor(new Color(0, 0, 0, 150));
-            g2d.fillRect(textX - 5, textY - 15, label.length() * 9, 20);
-            
-            // 텍스트
-            g2d.setColor(labelColor);
-            g2d.drawString(label, textX, textY);
-        }
+//        
+//        // 스킬 이름
+//        if (label != null) {
+//            g2d.setFont(new Font("SansSerif", Font.BOLD, 16));
+//            
+//            int textX = ix + width / 2 - label.length() * 4;
+//            int textY = iy + height / 2 + 5;
+//            
+//            // 텍스트 배경
+//            g2d.setColor(new Color(0, 0, 0, 150));
+//            g2d.fillRect(textX - 5, textY - 15, label.length() * 9, 20);
+//            
+//            // 텍스트
+//            g2d.setColor(labelColor);
+//            g2d.drawString(label, textX, textY);
+//        }
     }
     
-    /**
-     * 플레이어 상태 텍스트
-     */
+    // DEBUG: 플레이어 상태 텍스트
     private String getPlayerStateText() {
         switch (state) {
             case 1: return "JUMP";
@@ -213,9 +219,7 @@ public class Sprite {
         }
     }
     
-    /**
-     * 장애물 타입별 색상
-     */
+    // 장애물 타입별 색상
     private Color getObstacleColor() {
         switch (subType) {
             case 0: return new Color(139, 69, 19);    // GROUND - 갈색

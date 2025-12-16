@@ -34,13 +34,8 @@ public class GameState {
      * 게임 상태 업데이트
      */
     public void update(double deltaTime) {
-        // 캐릭터 상태 자동 복귀
         charController.updateCharacterState(deltaTime);
-
-        // 만료된 스킬 정리
         charController.updateSkills();
-
-        // 트랙 업데이트 (장애물 이동, 충돌 처리)
         trackController.update(deltaTime);
     }
 
@@ -78,14 +73,6 @@ public class GameState {
 
     public void activateSkill(int skillId) {
         charController.activateSkill(skillId);
-    }
-
-    public boolean hasActiveSkill(int skillId) {
-        return charController.hasActiveSkill(skillId);
-    }
-
-    public boolean hasAnyActiveSkill() {
-        return charController.hasAnyActiveSkill();
     }
 
     public long getRemainingCooldown(int skillId) {
