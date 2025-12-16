@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.List;
 
 import marchoffools.common.protocol.MessageType;
 import marchoffools.common.protocol.Packet;
@@ -113,6 +114,10 @@ public class ClientHandler extends Thread {
                 handleLeaveRoom(msg);
                 break;
                 
+            case RoomActionMessage.LIST_ROOMS:
+                handleListRooms(msg);
+                break;
+                
             case RoomActionMessage.CANCEL_MATCH:  
                 handleCancelMatch(msg);
                 break;
@@ -127,6 +132,10 @@ public class ClientHandler extends Thread {
                 
             case RoomActionMessage.START_GAME:  // TODO: Phase 4
             	handleStartGame(msg);
+                break;
+                
+            case RoomActionMessage.BACK_TO_LOBBY:
+                handleBackToLobby(msg);
                 break;
                 
             default:
@@ -310,12 +319,8 @@ public class ClientHandler extends Thread {
 
     // 방 나가기 처리
     private void handleLeaveRoom(RoomActionMessage msg) {
-        // 방에 있는지 확인
         if (currentRoomId == null) {
-            sendResponse(ResponseMessage.error(
-                ResponseMessage.NOT_IN_ROOM,
-                "방에 입장해 있지 않습니다"
-            ));
+            sendResponse(ResponseMessage.error(ResponseMessage.NOT_IN_ROOM, "방에 입장해 있지 않습니다"));
             return;
         }
         
@@ -324,30 +329,41 @@ public class ClientHandler extends Thread {
         
         if (room == null) {
             currentRoomId = null;
-            sendResponse(ResponseMessage.error(
-                ResponseMessage.ROOM_NOT_FOUND,
-                "방을 찾을 수 없습니다"
-            ));
+            sendResponse(ResponseMessage.error(ResponseMessage.ROOM_NOT_FOUND, "방을 찾을 수 없습니다"));
             return;
         }
         
-        // 방에서 나가기
+        // 플레이어 제거
         room.removePlayer(playerId);
         String roomId = currentRoomId;
         currentRoomId = null;
         
         System.out.println("방 나가기 완료: " + playerName + " ← " + roomId);
-        
-        // 성공 응답
         sendResponse(ResponseMessage.success("방 나가기 성공"));
         
-        // 방이 비었으면 삭제
         if (room.isEmpty()) {
             roomManager.removeRoom(roomId);
         } else {
-            // 남은 플레이어들에게 알림
+            if (room.isPlaying() || room.getStatus() == Room.STATUS_FINISHED) {
+                room.resetForNewGame();
+                System.out.println("남은 플레이어를 위해 방 상태 초기화 (WAITING)");
+            }
+
             room.broadcastRoomInfo(RoomInfoMessage.PLAYER_LEFT);
         }
+    }
+    
+    private void handleListRooms(RoomActionMessage msg) {
+        System.out.println("방 목록 요청: " + playerName);
+        
+        RoomManager roomManager = server.getRoomManager();
+        List<RoomListMessage.RoomSummary> roomList = roomManager.getRoomList();
+        
+        RoomListMessage response = new RoomListMessage(roomList);
+        Packet packet = new Packet(MessageType.ROOM_LIST, response);
+        sendPacket(packet);
+        
+        System.out.println("방 목록 전송: " + roomList.size() + "개");
     }
     
     private void handleCancelMatch(RoomActionMessage msg) {
@@ -492,6 +508,41 @@ public class ClientHandler extends Thread {
         System.out.println("✓ 모든 플레이어에게 게임 시작 신호 전송 완료");
     }
     
+    private void handleBackToLobby(RoomActionMessage msg) {
+        System.out.println("대기실 복귀 요청: " + playerName);
+        
+        if (currentRoomId == null) {
+            sendResponse(ResponseMessage.error(
+                ResponseMessage.NOT_IN_ROOM,
+                "방에 입장해 있지 않습니다"
+            ));
+            return;
+        }
+        
+        RoomManager roomManager = server.getRoomManager();
+        Room room = roomManager.getRoom(currentRoomId);
+        
+        if (room == null) {
+            sendResponse(ResponseMessage.error(
+                ResponseMessage.ROOM_NOT_FOUND,
+                "방을 찾을 수 없습니다"
+            ));
+            return;
+        }
+        
+        if (room.getStatus() != Room.STATUS_WAITING) {
+            room.resetForNewGame();
+            System.out.println("방 상태 초기화 완료 (WAITING)");
+        }
+        
+        room.broadcastRoomInfo(RoomInfoMessage.READY_CHANGED);
+        
+        System.out.println("✓ 대기실 복귀 완료: " + playerName);
+        
+        // 3. 성공 응답
+        sendResponse(ResponseMessage.success("대기실로 복귀했습니다"));
+    }
+    
     private void handleGameInput(GameInputMessage msg) {
         int inputType = msg.getInputType();
         
@@ -592,27 +643,26 @@ public class ClientHandler extends Thread {
     }
     
     private void cleanup() {
-    	// 방에 있었다면 방에서 나가기 처리
-    	if (currentRoomId != null) {
+        if (currentRoomId != null) {
             RoomManager roomManager = server.getRoomManager();
             Room room = roomManager.getRoom(currentRoomId);
             
             if (room != null) {
                 room.removePlayer(playerId);
-                
                 System.out.println("비정상 종료로 방 나가기: " + playerName + " ← " + currentRoomId);
                 
-                // 방이 비었으면 삭제
                 if (room.isEmpty()) {
                     roomManager.removeRoom(currentRoomId);
                 } else {
-                    // 남은 플레이어들에게 알림
+                    if (room.isPlaying() || room.getStatus() == Room.STATUS_FINISHED) {
+                        room.resetForNewGame();
+                    }
                     room.broadcastRoomInfo(RoomInfoMessage.PLAYER_LEFT);
                 }
             }
             currentRoomId = null;
         }
-    	
+        
         try {
             if (in != null) in.close();
             if (out != null) out.close();

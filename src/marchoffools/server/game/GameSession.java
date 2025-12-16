@@ -45,7 +45,13 @@ public class GameSession {
         
         isRunning = true;
         frameCount = 0;
+        
+        // 게임 시작 시간 기록
+        gameStartTime = System.currentTimeMillis();
+        System.out.println("✅ Game start time recorded: " + gameStartTime);
+        
         state.reset();
+        spawner.reset();
         
         System.out.println("✅ Creating game loop...");
         gameLoop = Executors.newSingleThreadScheduledExecutor();
@@ -130,7 +136,7 @@ public class GameSession {
         room.broadcast(MessageType.GAME_STATE, msg);
         
         // 10초마다 한 번씩만 상태 로그
-        if (frameCount % 600 == 0) { // 60fps * 10초 = 600프레임
+        if (frameCount % 600 == 0) {
             System.out.println(String.format(
                 "📊 [%ds] 거리: %.0fm | 점수: %d | 장애물: %d개 | Y: %.0f",
                 state.getPlayTime(),
@@ -148,21 +154,29 @@ public class GameSession {
     private void finishGame() {
         TrackController track = state.getTrackController();
         
+        long actualPlayTime = System.currentTimeMillis() - gameStartTime;
+        
         System.out.println("========================================");
         System.out.println("🏁 게임 종료: " + roomId);
         System.out.println("   최종 점수: " + track.getScore());
-        System.out.println("   플레이 시간: " + state.getPlayTime() + "초");
+        System.out.println("   플레이 시간: " + (actualPlayTime / 1000) + "초");
         System.out.println("========================================");
         
         isRunning = false;
         stopGame();
 
-        // GameResultMessage 생성 및 전송
+        // GameResultMessage 전송 (이것만!)
         sendGameResult();
 
-        // 방 상태 변경
+        // 방 상태만 변경 (브로드캐스트 하지 않음!)
+        // 클라이언트가 BACK_TO_LOBBY 요청할 때 RoomInfo를 받음
         room.setStatus(Room.STATUS_FINISHED);
-        room.broadcastRoomInfo(Room.STATUS_FINISHED);
+        
+        // ⭐ 중요: broadcastRoomInfo() 제거!
+        // 이걸 호출하면 GameResult보다 먼저 처리되어 대기실로 가버림
+        // room.broadcastRoomInfo(Room.STATUS_FINISHED);  // 삭제!
+        
+        System.out.println("✅ GameResult만 전송 완료 (RoomInfo 브로드캐스트 안 함)");
     }
 
     /**
@@ -190,13 +204,17 @@ public class GameSession {
         // 게임 결과 통계
         result.setFinalDistance(track.getDistance());
         result.setTotalScore(track.getScore());
-        result.setPlayTime(System.currentTimeMillis() - gameStartTime);
+        
+        // 실제 플레이 시간 계산
+        long playTimeMs = System.currentTimeMillis() - gameStartTime;
+        result.setPlayTime(playTimeMs);
+        System.out.println("   플레이 시간(ms): " + playTimeMs);
         
         // 장애물 통계
         result.setObstaclesDestroyed(track.getObstaclesDestroyed());
         result.setObstaclesAvoided(track.getObstaclesAvoided());
         
-        // 개별 기여도 (기사가 파괴, 말이 회피)
+        // 개별 기여도
         result.setPlayer1Destroyed(track.getObstaclesDestroyed());
         result.setPlayer2Avoided(track.getObstaclesAvoided());
         

@@ -2,6 +2,8 @@ package marchoffools.server.game;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import marchoffools.common.message.RoomListMessage.RoomSummary;
+import marchoffools.common.model.PlayerInfo;
 
 public class RoomManager {
     
@@ -33,7 +35,10 @@ public class RoomManager {
     
     // 빠른 매칭 - 입장 가능한 방 찾기
     public Room findAvailableRoom() {
-        for (Room room : rooms.values()) {
+    	
+    	List<Room> snapshot = new ArrayList<>(rooms.values());
+    	
+    	for (Room room : snapshot) {
             if (!room.isFull() && !room.isPlaying()) {
                 System.out.println("매칭된 방: " + room.getRoomId());
                 return room;
@@ -63,7 +68,9 @@ public class RoomManager {
     
     // 플레이어가 속한 방 찾기
     public Room findRoomByPlayer(String playerId) {
-        for (Room room : rooms.values()) {
+    	List<Room> snapshot = new ArrayList<>(rooms.values());
+        
+        for (Room room : snapshot) {
             if (room.hasPlayer(playerId)) {
                 return room;
             }
@@ -89,10 +96,37 @@ public class RoomManager {
     
     // 전체 플레이어 수
     public int getTotalPlayerCount() {
+    	List<Room> snapshot = new ArrayList<>(rooms.values());
+        
         int count = 0;
-        for (Room room : rooms.values()) {
+        for (Room room : snapshot) {
             count += room.getPlayerCount();
         }
         return count;
+    }
+    
+    public List<RoomSummary> getRoomList() {
+    	List<Room> snapshot = new ArrayList<>(rooms.values());
+        List<RoomSummary> list = new ArrayList<>();
+        
+        for (Room room : snapshot) {
+            String hostName = "Unknown";
+            String hostId = room.getHostId();
+            PlayerInfo hostInfo = room.getPlayerInfo(hostId);
+            if (hostInfo != null) {
+                hostName = hostInfo.getPlayerName();
+            }
+            
+            RoomSummary summary = new RoomSummary(
+                room.getRoomId(),
+                hostName,
+                room.getPlayerCount(),
+                2,  // MAX_PLAYERS
+                room.isPlaying()
+            );
+            list.add(summary);
+        }
+        
+        return list;
     }
 }

@@ -2,6 +2,7 @@ package marchoffools.client.network;
 
 import marchoffools.common.message.ChatMessage;
 import marchoffools.common.message.RoomInfoMessage;
+import marchoffools.common.message.RoomListMessage;
 import marchoffools.common.message.GameInputMessage;
 import marchoffools.common.message.GameStateMessage;
 import marchoffools.common.message.GameResultMessage;
@@ -23,6 +24,8 @@ public interface NetworkListener {
     default void onChat(ChatMessage msg) {
         // 기본 구현: 아무것도 안 함
     }
+    
+    default void onRoomList(RoomListMessage msg) {}
     
     
     /* === 게임 관련 메시지 === */

@@ -66,14 +66,14 @@ public class GameScene extends Scene implements NetworkListener {
     
     // 스킬 버튼들
     private Button[] skillButtons = new Button[6];
-    
+
     // 슬라이드 키 상태
     private boolean isSlideKeyPressed = false;
-    
+
     // 쿨다운 관리
     private javax.swing.Timer cooldownTimer;
     private long[] lastSkillUsedTime = new long[6];
-    
+
     // 스킬 쿨타임 상수 (GameSkill과 동일)
     private static final long[] SKILL_COOLDOWNS = {
         30000,  // 외침: 30초
@@ -86,7 +86,7 @@ public class GameScene extends Scene implements NetworkListener {
 
     public GameScene(String myName, String opponentName, int myRole, int opponentRole) {
         super(DEFAULT);
-        
+
         this.myName = myName;
         this.opponentName = opponentName;
         this.myRole = myRole;
@@ -102,17 +102,19 @@ public class GameScene extends Scene implements NetworkListener {
         };
         addMouseListener(sceneMouseListener);
         
-        createExitButton();
+//        createExitButton();
         createScoreTimeSection();
         createEmotionSection();
         createGameCanvas();
         createSkillUseSection();
         setupKeyBindings();
         startCooldownTimer();
-        
+
         System.out.println("GameScene initialized:");
         System.out.println("  My Name: " + myName + " [" + getRoleName(myRole) + "]");
         System.out.println("  Opponent: " + opponentName + " [" + getRoleName(opponentRole) + "]");
+
+        setFocusable(false);
     }
     
     @Override
@@ -134,21 +136,21 @@ public class GameScene extends Scene implements NetworkListener {
         cooldownTimer = new javax.swing.Timer(50, e -> updateCooldownDisplay());
         cooldownTimer.start();
     }
-    
+
     /**
      * 쿨다운 표시 업데이트
      */
     private void updateCooldownDisplay() {
         long now = System.currentTimeMillis();
-        
+
         for (int i = 0; i < skillButtons.length; i++) {
             if (!(skillButtons[i] instanceof SkillButton)) continue;
             if (SKILL_COOLDOWNS[i] == 0) continue;
-            
+
             SkillButton skillButton = (SkillButton) skillButtons[i];
             long elapsed = now - lastSkillUsedTime[i];
             long remaining = SKILL_COOLDOWNS[i] - elapsed;
-            
+
             if (remaining > 0) {
                 // 쿨다운 중
                 float ratio = (float) remaining / SKILL_COOLDOWNS[i];
@@ -169,7 +171,7 @@ public class GameScene extends Scene implements NetworkListener {
     private boolean canUseSkill(int skillId) {
         if (skillId < 0 || skillId >= 6) return false;
         if (SKILL_COOLDOWNS[skillId] == 0) return true;
-        
+
         long now = System.currentTimeMillis();
         long elapsed = now - lastSkillUsedTime[skillId];
         return elapsed >= SKILL_COOLDOWNS[skillId];
@@ -206,16 +208,16 @@ public class GameScene extends Scene implements NetworkListener {
         add(gameCanvas, Integer.valueOf(javax.swing.JLayeredPane.DEFAULT_LAYER));
     }
     
-    private void createExitButton() {
-        Button bExit = new Button("->");
-        bExit.setFont(getFont().deriveFont(Font.BOLD, 30f));
-        bExit.setSize(100, 50); 
-        bExit.setLocation(WINDOW_WIDTH - bExit.getWidth() - 72, 40);
-        bExit.addActionListener(e -> {
-            goBack();
-        });
-        add(bExit, Integer.valueOf(javax.swing.JLayeredPane.PALETTE_LAYER));
-    }
+//    private void createExitButton() {
+//        Button bExit = new Button("->");
+//        bExit.setFont(getFont().deriveFont(Font.BOLD, 30f));
+//        bExit.setSize(100, 50);
+//        bExit.setLocation(WINDOW_WIDTH - bExit.getWidth() - 72, 40);
+//        bExit.addActionListener(e -> {
+//            goBack();
+//        });
+//        add(bExit, Integer.valueOf(javax.swing.JLayeredPane.PALETTE_LAYER));
+//    }
     
     private void createEmotionSection() {
         int buttonSize = 70;
@@ -224,24 +226,24 @@ public class GameScene extends Scene implements NetworkListener {
         int sectionHeight = buttonSize + 20;
         int totalHeight = sectionHeight * 2 + gap;
         int startY = (WINDOW_HEIGHT - totalHeight) / 2;
-        
+
         createPlayerEmojiSection(myName, true, 20, startY);
         createPlayerEmojiSection(opponentName, false, 20, startY + sectionHeight + gap);
     }
     
     private void createPlayerEmojiSection(String playerName, boolean isMyButton, int x, int y) {
         int buttonSize = 70;
-        
+
         Button emojiButton = createEmojiButton(playerName, isMyButton);
         emojiButton.setBounds(x, y, buttonSize, buttonSize);
         add(emojiButton, Integer.valueOf(javax.swing.JLayeredPane.PALETTE_LAYER));
-        
+
         if (isMyButton) {
             myEmojiButton = emojiButton;
         } else {
             opponentEmojiButton = emojiButton;
         }
-        
+
         JLabel nameLabel = new JLabel(playerName, SwingConstants.CENTER);
         nameLabel.setFont(getFont().deriveFont(12f));
         nameLabel.setForeground(BLACK);
@@ -291,20 +293,20 @@ public class GameScene extends Scene implements NetworkListener {
             skillButtons[0] = new SkillButton("<html><center>외침(Q)</center></html>", 0);
             skillButtons[1] = new SkillButton("<html><center>찌르기(W)</center></html>", 1);
             skillButtons[2] = new SkillButton("<html><center>베기(E)</center></html>", 2);
-            
+
             for (int i = 0; i < 3; i++) {
                 int x = startX + i * (buttonW + gap);
                 skillButtons[i].setBounds(x, startY, buttonW, buttonH);
                 add(skillButtons[i], Integer.valueOf(javax.swing.JLayeredPane.PALETTE_LAYER));
             }
-            
+
         } else if (myRole == ROLE_HORSE) {
             // 말 기본 동작 버튼들 (쿨다운 없음)
             Button bJump = createSkillButton("점프(Space)", -1);
             bJump.setBounds(startX, startY, buttonW, buttonH);
             bJump.addActionListener(e -> handleJumpInput());
             add(bJump, Integer.valueOf(javax.swing.JLayeredPane.PALETTE_LAYER));
-            
+
             Button bSlide = createSkillButton("슬라이드(Shift)", -2);
             bSlide.setBounds(startX + buttonW + gap, startY, buttonW, buttonH);
             bSlide.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -318,7 +320,7 @@ public class GameScene extends Scene implements NetworkListener {
                 }
             });
             add(bSlide, Integer.valueOf(javax.swing.JLayeredPane.PALETTE_LAYER));
-            
+
             // 돌진 스킬 (쿨다운 있음)
             int x = startX + (buttonW + gap) * 2;
             skillButtons[5] = new SkillButton("<html><center>돌진(R)</center></html>", 5);
@@ -348,77 +350,77 @@ public class GameScene extends Scene implements NetworkListener {
     // ==========================================
     //        쿨다운 오버레이 패널
     // ==========================================
-    
+
     /**
      * 스킬 쿨다운을 시각적으로 표시하는 오버레이
      */
     private class CooldownOverlay extends JPanel {
         private static final long serialVersionUID = 1L;
-        
+
         private float cooldownRatio = 1.0f;  // 0.0 (끝) ~ 1.0 (시작)
         private double remainingSeconds = 0.0;
-        
+
         public CooldownOverlay() {
             setOpaque(false);
             setLayout(null);
         }
-        
+
         public void setCooldownRatio(float ratio) {
             this.cooldownRatio = Math.max(0, Math.min(1, ratio));
             repaint();
         }
-        
+
         public void setRemainingSeconds(double seconds) {
             this.remainingSeconds = seconds;
             repaint();
         }
-        
+
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
-            
+
             if (!isVisible() || cooldownRatio <= 0) return;
-            
+
             Graphics2D g2d = (Graphics2D) g;
-            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, 
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                                 RenderingHints.VALUE_ANTIALIAS_ON);
             g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
                                 RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-            
+
             int width = getWidth();
             int height = getHeight();
-            
+
             // 반투명 검정 오버레이 (위에서부터 cooldownRatio 비율만큼)
             int overlayHeight = (int) (height * cooldownRatio);
             g2d.setColor(new Color(0, 0, 0, 180));
             g2d.fillRoundRect(0, 0, width, overlayHeight, 10, 10);
-            
+
             // 남은 시간 텍스트 (중앙)
             if (remainingSeconds > 0.05) {
                 g2d.setColor(Color.WHITE);
                 g2d.setFont(new Font("Arial", Font.BOLD, 28));
-                
+
                 String timeText = String.format("%.0f", Math.ceil(remainingSeconds));
                 int textWidth = g2d.getFontMetrics().stringWidth(timeText);
                 int textHeight = g2d.getFontMetrics().getAscent();
-                
+
                 int textX = (width - textWidth) / 2;
                 int textY = height / 2 + textHeight / 2 - 5;
-                
+
                 // 텍스트 외곽선 (더 잘 보이도록)
                 g2d.setColor(Color.BLACK);
                 g2d.drawString(timeText, textX - 1, textY - 1);
                 g2d.drawString(timeText, textX + 1, textY - 1);
                 g2d.drawString(timeText, textX - 1, textY + 1);
                 g2d.drawString(timeText, textX + 1, textY + 1);
-                
+
                 // 실제 텍스트
                 g2d.setColor(Color.WHITE);
                 g2d.drawString(timeText, textX, textY);
             }
         }
     }
-    
+
     // ==========================================
     //        키보드 입력 설정
     // ==========================================
@@ -440,7 +442,7 @@ public class GameScene extends Scene implements NetworkListener {
                             break;
                     }
                 }
-                
+
                 // 스킬 단축키 (역할 무관)
                 switch (e.getKeyCode()) {
                     case KeyEvent.VK_Q:
@@ -457,7 +459,7 @@ public class GameScene extends Scene implements NetworkListener {
                         break;
                 }
             }
-            
+
             @Override
             public void keyReleased(KeyEvent e) {
                 if (myRole == ROLE_HORSE) {
@@ -468,7 +470,7 @@ public class GameScene extends Scene implements NetworkListener {
                 }
             }
         });
-        
+
         setFocusable(true);
         requestFocus();
     }
@@ -476,72 +478,72 @@ public class GameScene extends Scene implements NetworkListener {
     // ==========================================
     //        입력 처리
     // ==========================================
-    
+
     private void handleJumpInput() {
         NetworkManager nm = getNetworkManager();
         if (nm == null) return;
-        
+
         GameInputMessage msg = new GameInputMessage(
             nm.getPlayerId(),
             GameInputMessage.JUMP
         );
         nm.sendMessage(MessageType.GAME_INPUT, msg);
-        
+
         System.out.println("✔ Jump input sent");
     }
-    
+
     private void handleSlideInput(boolean pressed) {
         NetworkManager nm = getNetworkManager();
         if (nm == null) return;
-        
+
         GameInputMessage msg = new GameInputMessage(
             nm.getPlayerId(),
             GameInputMessage.SLIDE,
             pressed ? 1 : 0
         );
         nm.sendMessage(MessageType.GAME_INPUT, msg);
-        
+
         System.out.println("✔ Slide " + (pressed ? "ON" : "OFF"));
     }
-    
+
     private void handleSkillUse(int skillId) {
         // 쿨다운 체크
         if (!canUseSkill(skillId)) {
             System.out.println("⏱ Skill " + skillId + " is on cooldown");
             return;
         }
-        
+
         NetworkManager nm = getNetworkManager();
         if (nm == null) return;
-        
+
         GameInputMessage msg = new GameInputMessage(
             nm.getPlayerId(),
             GameInputMessage.USE_ITEM,
             skillId
         );
         nm.sendMessage(MessageType.GAME_INPUT, msg);
-        
+
         // 쿨타임 시작
         long now = System.currentTimeMillis();
         lastSkillUsedTime[skillId] = now;
-        
+
         // 찌르기/베기는 쿨타임 묶기
         if (skillId == 1) {  // 찌르기
             lastSkillUsedTime[2] = now;
         } else if (skillId == 2) {  // 베기
             lastSkillUsedTime[1] = now;
         }
-        
+
         System.out.println("✔ Skill use sent: " + skillId);
-        
+
         // 즉시 UI 업데이트
         updateCooldownDisplay();
     }
-    
+
     // ==========================================
     //        UI 업데이트
     // ==========================================
-    
+
     public void updateTimer(int seconds) {
         SwingUtilities.invokeLater(() -> {
             this.playTime = seconds;
@@ -561,7 +563,7 @@ public class GameScene extends Scene implements NetworkListener {
             lScore.setText(String.format("%,d", score));
         });
     }
-    
+
     private String getRoleName(int role) {
         switch (role) {
             case ROLE_KNIGHT: return "Knight";
@@ -576,7 +578,7 @@ public class GameScene extends Scene implements NetworkListener {
     
     private void showEmojiSelector(Button targetButton) {
         String[] availableEmojis = {"😊", "😡", "😭", "😴", "😱"};
-        
+
         JPanel emojiSelectorPanel = new JPanel();
         emojiSelectorPanel.setLayout(new BoxLayout(emojiSelectorPanel, BoxLayout.Y_AXIS));
         emojiSelectorPanel.setBackground(WHITE);
@@ -621,7 +623,7 @@ public class GameScene extends Scene implements NetworkListener {
         int popupHeight = availableEmojis.length * 65 + 10;
         
         emojiSelectorPanel.setBounds(popupX, popupY, popupWidth, popupHeight);
-        
+
         closeEmojiSelector();
         
         currentEmojiSelector = emojiSelectorPanel;
@@ -704,20 +706,20 @@ public class GameScene extends Scene implements NetworkListener {
             setLayout(null);
             
             player = new Sprite(
-                Sprite.TYPE_PLAYER, 
-                GameConstants.CHARACTER_X, 
+                Sprite.TYPE_PLAYER,
+                GameConstants.CHARACTER_X,
                 GameConstants.CHARACTER_Y,
-                GameConstants.CHARACTER_WIDTH, 
+                GameConstants.CHARACTER_WIDTH,
                 GameConstants.CHARACTER_HEIGHT
             );
-            
+
             player.setImage("player");
             player.setLabel("Player");
-            
+
             obstacles = new HashMap<>();
             skillRanges = new ArrayList<>();
         }
-        
+
         public void updateGameState(GameStateMessage msg) {
             this.lastGameState = msg;
             updateCharacter(msg);
@@ -725,13 +727,13 @@ public class GameScene extends Scene implements NetworkListener {
             updateSkillRanges(msg.getActiveSkills());
             repaint();
         }
-        
+
         private void updateCharacter(GameStateMessage msg) {
             player.setY(msg.getPlayerY());
             player.setState(msg.getCharState());
             player.setInvincible(msg.isInvincible());
         }
-        
+
         private void updateObstacles(List<GameStateMessage.ObstacleData> obsData) {
             obstacles.keySet().removeIf(id ->
                 obsData.stream().noneMatch(o -> o.getId().equals(id))
@@ -778,13 +780,13 @@ public class GameScene extends Scene implements NetworkListener {
             int playerWidth = player.getWidth();
             int playerHeight = player.getHeight();
             int playerRight = (int)(playerX + playerWidth);
-            
+
             // 외침 스킬 (0번): 화면 전체
             if (activeSkills[0]) {
                 Sprite shout = new Sprite(
-                    Sprite.TYPE_SKILL, 
-                    0, 
-                    0, 
+                    Sprite.TYPE_SKILL,
+                    0,
+                    0,
                     GameConstants.GAME_WIDTH,
                     GameConstants.GAME_HEIGHT
                 );
@@ -794,14 +796,14 @@ public class GameScene extends Scene implements NetworkListener {
                 shout.setLabel("외침!");
                 skillRanges.add(shout);
             }
-            
+
             // 찌르기 스킬 (1번): 플레이어 오른쪽 150px
             if (activeSkills[1]) {
                 Sprite thrust = new Sprite(
-                    Sprite.TYPE_SKILL, 
-                    playerRight, 
-                    (int)playerY, 
-                    GameConstants.THRUST_RANGE, 
+                    Sprite.TYPE_SKILL,
+                    playerRight,
+                    (int)playerY,
+                    GameConstants.THRUST_RANGE,
                     playerHeight
                 );
                 thrust.setFillColor(new Color(255, 0, 0, 80));
@@ -810,14 +812,14 @@ public class GameScene extends Scene implements NetworkListener {
                 thrust.setLabel("찌르기");
                 skillRanges.add(thrust);
             }
-            
+
             // 베기 스킬 (2번): 플레이어 오른쪽 100px
             if (activeSkills[2]) {
                 Sprite slash = new Sprite(
-                    Sprite.TYPE_SKILL, 
-                    playerRight, 
-                    (int)playerY, 
-                    GameConstants.SLASH_RANGE, 
+                    Sprite.TYPE_SKILL,
+                    playerRight,
+                    (int)playerY,
+                    GameConstants.SLASH_RANGE,
                     playerHeight
                 );
                 slash.setFillColor(new Color(0, 150, 255, 80));
@@ -833,7 +835,7 @@ public class GameScene extends Scene implements NetworkListener {
             super.paintComponent(g);
             
             Graphics2D g2d = (Graphics2D) g;
-            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, 
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                                 RenderingHints.VALUE_ANTIALIAS_ON);
             
 //            // DEBUG: 지면 라인
@@ -868,13 +870,13 @@ public class GameScene extends Scene implements NetworkListener {
         public SkillButton(String text, int skillId) {
             super(text);
             this.skillId = skillId;
-            
+
             setFont(getFont().deriveFont(Font.BOLD, 14f));
             setForeground(BLACK);
             setPreferredSize(new Dimension(100, 100));
             setMinimumSize(new Dimension(100, 100));
             setMaximumSize(new Dimension(100, 100));
-            
+
             setButtonColors(WHITE, WHITE.brighter(), LIGHT_GRAY);
             setBorder(BorderFactory.createLineBorder(GRAY, 3));
             
@@ -916,33 +918,33 @@ public class GameScene extends Scene implements NetworkListener {
             
             // 쿨다운이 없으면 오버레이 그리지 않음
             if (cooldownRatio <= 0) return;
-            
+
             Graphics2D g2d = (Graphics2D) g.create();
-            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, 
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                                 RenderingHints.VALUE_ANTIALIAS_ON);
             g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
                                 RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-            
+
             int width = getWidth();
             int height = getHeight();
-            
+
             // 반투명 검정 오버레이 (위에서부터 cooldownRatio 비율만큼)
             int overlayHeight = (int) (height * cooldownRatio);
             g2d.setColor(new Color(0, 0, 0, 180));
             g2d.fillRoundRect(0, 0, width, overlayHeight, 10, 10);
-            
+
             // 남은 시간 텍스트 (중앙)
             if (remainingSeconds > 0.05) {
                 String timeText = String.format("%.0f", Math.ceil(remainingSeconds));
-                
+
                 // 텍스트 크기 계산
                 g2d.setFont(new Font("Arial", Font.BOLD, 28));
                 int textWidth = g2d.getFontMetrics().stringWidth(timeText);
                 int textHeight = g2d.getFontMetrics().getAscent();
-                
+
                 int textX = (width - textWidth) / 2;
                 int textY = height / 2 + textHeight / 2 - 5;
-                
+
                 // 텍스트 외곽선 (더 잘 보이도록)
                 g2d.setColor(Color.BLACK);
                 for (int dx = -1; dx <= 1; dx++) {
@@ -952,12 +954,12 @@ public class GameScene extends Scene implements NetworkListener {
                         }
                     }
                 }
-                
+
                 // 실제 텍스트
                 g2d.setColor(Color.WHITE);
                 g2d.drawString(timeText, textX, textY);
             }
-            
+
             g2d.dispose();
         }
     }
@@ -987,6 +989,11 @@ public class GameScene extends Scene implements NetworkListener {
     @Override
     public void onGameResult(GameResultMessage msg) {
         System.out.println("GameScene received GameResult: score=" + msg.getTotalScore());
-        // TODO: 결과 화면으로 전환
+        
+        SwingUtilities.invokeLater(() -> {
+            GameResultScene resultScene = new GameResultScene(msg);
+            
+            switchToWithoutHistory(resultScene);
+        });
     }
 }

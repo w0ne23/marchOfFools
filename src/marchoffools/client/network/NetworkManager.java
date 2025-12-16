@@ -103,19 +103,19 @@ public class NetworkManager {
         	// disconnect() - sendMessage() 순환호출 오류가 있음
         	// disconnect() 메서드 내에서 역할도 섞여있으므로
         	// 단순 자원정리만 하도록 수정. sendMessage 호출은 이 메서드의 호출부에서 따로 하도록...
-        	
+
 //            // DISCONNECT 메시지 전송
 //            RoomActionMessage disconnectMsg = new RoomActionMessage(
-//                playerId, 
+//                playerId,
 //                RoomActionMessage.DISCONNECT
 //            );
 //            disconnectMsg.setPlayerName(playerName);
-//            
+//
 //            sendMessage(MessageType.ROOM_ACTION, disconnectMsg);
-//            
+//
 //            // 잠시 대기 (메시지 전송 완료)
 //            Thread.sleep(100);
-            
+
             // 연결 종료
             if (networkThread != null) {
                 networkThread.stopThread();
@@ -181,7 +181,10 @@ public class NetworkManager {
             case GAME_RESULT:
                 handleGameResult((GameResultMessage) packet.getData());
                 break;
-                
+            case ROOM_LIST:
+                handleRoomList((RoomListMessage) packet.getData());
+                break;
+
             default:
                 System.out.println("알 수 없는 메시지 타입: " + type);
         }
@@ -205,7 +208,7 @@ public class NetworkManager {
         System.out.println("Players: " + msg.getPlayers().size());
         System.out.println("Can Start: " + msg.isCanStart());
         
-     // 게임 시작 상태 체크
+        // 게임 시작 상태 체크
         if (msg.getStatus() == Room.STATUS_PLAYING) {
             handleGameStartFromRoomInfo(msg);
             return;
@@ -215,9 +218,23 @@ public class NetworkManager {
             if (listener != null) {
                 listener.onRoomInfo(msg);
             } else {
-                // listener가 없으면 경고만 출력
-                System.err.println("Warning: RoomInfo received but no listener set");
-                System.err.println("Current scene should handle room entry");
+                // listener가 없으면 Scene 전환 시도
+                System.out.println("Warning: No NetworkListener, transitioning to LobbyScene and delivering RoomInfo");
+                
+                Scene currentScene = frame.getCurrentScene();
+                
+                if (!(currentScene instanceof LobbyScene)) {
+                    // LobbyScene이 아니면 전환
+                    LobbyScene lobbyScene = new LobbyScene();
+                    frame.switchSceneWithoutHistory(lobbyScene);
+                    // Scene 전환 직후 RoomInfo 전달
+                    lobbyScene.updateRoomInfo(msg);
+                } else {
+                    // 이미 LobbyScene인데 listener가 없는 경우
+                    System.err.println("Warning: RoomInfo received but no listener set");
+                    System.err.println("Current scene should handle room");
+                    ((LobbyScene) currentScene).updateRoomInfo(msg);
+                }
             }
         });
     }
@@ -277,6 +294,14 @@ public class NetworkManager {
         }
     }
     
+    private void handleRoomList(RoomListMessage msg) {
+        System.out.println("RoomList 수신: " + msg.getRooms().size() + "개 방");
+
+        if (listener != null) {
+            SwingUtilities.invokeLater(() -> listener.onRoomList(msg));
+        }
+    }
+
     private void showError(int code, String message) {
         String title = "오류";
         
@@ -333,5 +358,12 @@ public class NetworkManager {
     public void setListener(NetworkListener listener) {
         this.listener = listener;
         System.out.println("NetworkListener set: " + (listener != null ? listener.getClass().getSimpleName() : "null"));
+    }
+    
+    public void removeListener(NetworkListener target) {
+        if (this.listener == target) {
+            this.listener = null;
+            System.out.println("NetworkListener removed.");
+        }
     }
 }

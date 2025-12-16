@@ -60,14 +60,46 @@ public class Frame extends JFrame implements SceneContext, NetworkContext{
         revalidate();
         repaint();
 	}
+	
+	@Override
+	public void switchSceneWithoutHistory(Scene newScene) {
+	    if (newScene == null) {
+	        System.err.println("ERROR: Cannot switch to null scene");
+	        return;
+	    }
+	    
+	    if (currentScene != null) {
+	        currentScene.onExit();
+	        remove(currentScene);
+	    }
+	    
+	    newScene.setContext(this, this);
+	    currentScene = newScene;
+	    add(newScene);
+	    
+	    revalidate();
+	    repaint();
+	}
+	
+	@Override
+	public void clearHistory() {
+	    for (Scene scene : history) {
+	        scene.onExit();
+	    }
+	    history.clear();
+	}
 
 	@Override
 	public void goBack() {
 	    if (!history.isEmpty()) {
 	        Scene prev = history.pop();
 	        
-	        remove(currentScene);
+	        if (currentScene != null) {
+	            currentScene.onExit();
+	            remove(currentScene);
+	        }
 	        
+	        prev.setContext(this, this);
 	        currentScene = prev;
 	        add(prev);
 	        

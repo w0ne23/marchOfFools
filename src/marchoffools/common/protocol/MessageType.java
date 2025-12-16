@@ -12,6 +12,8 @@ public enum MessageType {
     GAME_RESULT,      // 게임 결과
     RESPONSE,         // 응답/에러
     
+    ROOM_LIST,
+    
     // 양방향
     CHAT,             // 채팅
 }

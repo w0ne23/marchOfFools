@@ -1,5 +1,7 @@
 package marchoffools.client.scenes;
 
+import marchoffools.client.core.Assets;
+import marchoffools.client.core.AudioManager;
 import marchoffools.client.core.Scene;
 import marchoffools.client.ui.Button;
 
@@ -30,7 +32,7 @@ public class TitleScene extends Scene {
         p.setLocation(100, WINDOW_HEIGHT*2/5);
 		
 		Button bTutorial = new Button("튜토리얼");
-//		bTutorial.addActionListener(e -> switchTo(new GameScene()));
+		bTutorial.addActionListener(e -> switchTo(new TutorialScene()));
         p.add(bTutorial);
         
         Button bSelectRoom = new Button("방 만들기/참여하기");
@@ -38,11 +40,11 @@ public class TitleScene extends Scene {
         p.add(bSelectRoom);
 
 		Button bStatus = new Button("점수 통계");
-//		bStatus.addActionListener(e -> getCallback().switchScene(new WordsScene()));
+		bStatus.addActionListener(e -> switchTo(new ScoreScene()));
         p.add(bStatus);
         
 		Button bSettings = new Button("설정");
-//		bSettings.addActionListener(e -> getCallback().switchScene(new WordsScene()));
+		bSettings.addActionListener(e -> switchTo(new SettingScene()));
         p.add(bSettings);
         
 		Button bExit = new Button("나가기");
@@ -52,6 +54,8 @@ public class TitleScene extends Scene {
         add(p);
         
 		setFocusable(false);
+		
+		AudioManager.getInstance().playBgm(Assets.Sounds.BGM_LOBBY);
     }
 
 	@Override
