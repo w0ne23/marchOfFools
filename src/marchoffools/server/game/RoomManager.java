@@ -47,6 +47,14 @@ public class RoomManager {
     // 방 제거
     public void removeRoom(String roomId) {
         Room removed = rooms.remove(roomId);
+        
+        if (removed != null && removed.isPlaying()) {
+            GameSession session = removed.getGameSession();
+            if (session != null) {
+                session.stopGame();
+            }
+        }
+        
         if (removed != null) {
             System.out.println("방 삭제: " + roomId);
             System.out.println("현재 방 개수: " + rooms.size());
