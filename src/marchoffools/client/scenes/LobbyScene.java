@@ -155,7 +155,7 @@ public class LobbyScene extends Scene implements NetworkListener {
         bExit.setSize(100, 50); 
         bExit.setLocation(WINDOW_WIDTH - bExit.getWidth() - 72, 40);
         bExit.addActionListener(e -> {
-            goBack();
+            handleExit(); 
         });
         mainLayerPanel.add(bExit);
     }
@@ -952,7 +952,8 @@ public class LobbyScene extends Scene implements NetworkListener {
                 RoomActionMessage msg = new RoomActionMessage(nm.getPlayerId(), LEAVE_ROOM);
                 nm.sendMessage(MessageType.ROOM_ACTION, msg);
             }
-            goBack();
+            
+            switchToWithoutHistory(new TitleScene());
         }
     }
     
