@@ -142,7 +142,81 @@ public class SettingScene extends Scene {
 
         pAudioContent = createAudioPanel();
         
-        pControlContent = createPlaceholderPanel("조작 설정 내용이 여기에 표시됩니다");
+        pControlContent = createControlPanel();
+    }
+    
+    private JPanel createControlPanel() {
+        JPanel panel = new JPanel(new GridLayout(1, 2, 40, 0)); // 1행 2열, 간격 40
+        panel.setOpaque(false);
+        panel.setBorder(new EmptyBorder(100, 40, 40, 40));
+
+        JPanel pKnight = createRoleControlPanel("🗡️기사 (Attacker)", new String[][] {
+            {"Q", "외침 (스턴)"},
+            {"W", "찌르기"},
+            {"E", "베기"}
+        });
+
+        JPanel pHorse = createRoleControlPanel("🐴 말 (Runner)", new String[][] {
+            {"Space", "점프"},
+            {"Shift", "슬라이드"},
+            {"R", "돌진"}
+        });
+
+        panel.add(pKnight);
+        panel.add(pHorse); 
+        
+        return panel;
+    }
+    
+    private JPanel createRoleControlPanel(String title, String[][] keyActions) {
+        JPanel container = new JPanel(new BorderLayout(0, 20));
+        container.setOpaque(false);
+
+        JLabel lTitle = new JLabel(title, SwingConstants.CENTER);
+        lTitle.setFont(getFont().deriveFont(Font.BOLD, 24f));
+        lTitle.setForeground(BLACK);
+        container.add(lTitle, BorderLayout.NORTH);
+
+        JPanel listPanel = new JPanel(new GridBagLayout());
+        listPanel.setOpaque(false);
+        
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.insets = new Insets(0, 0, 15, 0); 
+
+        for (String[] pair : keyActions) {
+            String key = pair[0];
+            String action = pair[1];
+
+            JLabel lKey = new JLabel(key, SwingConstants.CENTER);
+            lKey.setFont(getFont().deriveFont(Font.BOLD, 18f));
+            lKey.setForeground(BLACK);
+            lKey.setPreferredSize(new Dimension(80, 40));
+            lKey.setBorder(BorderFactory.createLineBorder(GRAY, 2));
+            lKey.setBackground(WHITE);
+            lKey.setOpaque(true);
+
+            JLabel lAction = new JLabel(action);
+            lAction.setFont(getFont().deriveFont(20f));
+            lAction.setForeground(BLACK);
+            lAction.setBorder(new EmptyBorder(0, 15, 0, 0)); 
+
+            JPanel row = new JPanel(new BorderLayout());
+            row.setOpaque(false);
+            row.add(lKey, BorderLayout.WEST);
+            row.add(lAction, BorderLayout.CENTER);
+
+            listPanel.add(row, gbc);
+            gbc.gridy++;
+        }
+        
+        gbc.weighty = 1.0;
+        listPanel.add(new JLabel(), gbc);
+
+        container.add(listPanel, BorderLayout.CENTER);
+        return container;
     }
     
     private JPanel createAudioPanel() {
