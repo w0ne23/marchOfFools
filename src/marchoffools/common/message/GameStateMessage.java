@@ -7,54 +7,43 @@ import marchoffools.common.protocol.Message;
 public class GameStateMessage extends Message {
     private static final long serialVersionUID = 1L;
     
-    // 플레이어 상태
-//    private int player1Health;
-//    private int player2Health;
+    // ========== 기본 게임 정보 ==========
+    private String roomId;
+    private double distance;
+    private int score;
+    private int playTime;
     
-    // 게임 진행 상태
-    private double distance;          // 진행 거리
-    private double gameSpeed;         // 게임 속도
-    private int score;                // 현재 점수
-    private String roomId; 			  // 방 번호
-    private int currentPlayTime;	  // 남은 시간 
+    // ========== 캐릭터 상태 ==========
+    private double playerY;                 // Y좌표
+    private int charState;                  // 상태 (IDLE/JUMPING/SLIDING/ATTACKING)
+    private boolean isInvincible;           // 무적 여부
     
-    // 방해물 목록
+    // ========== 스킬 쿨타임 ==========
+    private long[] knightCooldowns;         // [외침, 찌르기, 베기]
+    private long[] horseCooldowns;          // [점프, 슬라이드, 돌진]
+    
+    // ========== 활성 스킬 ==========
+    private boolean[] activeSkills;         // 각 스킬 활성화 여부
+    
+    // ========== 장애물 목록 ==========
     private List<ObstacleData> obstacles;
-    
-    // 아이템 효과 상태
-    private boolean player1HasShield;
-    private boolean player2HasShield;
-    private long speedBoostEndTime;
     
     public GameStateMessage() {
         super();
         this.obstacles = new ArrayList<>();
+        this.knightCooldowns = new long[3];
+        this.horseCooldowns = new long[3];
+        this.activeSkills = new boolean[6];
     }
     
-    // Getters and Setters    
-//    public int getPlayer1Health() {
-//        return player1Health;
-//    }
-//    
-//    public void setPlayer1Health(int player1Health) {
-//        this.player1Health = player1Health;
-//    }
-//    
-//    public int getPlayer2Health() {
-//        return player2Health;
-//    }
-//    
-//    public void setPlayer2Health(int player2Health) {
-//        this.player2Health = player2Health;
-//    }
+    // ========== Getters and Setters ==========
     
-    public GameStateMessage(String roomId, int currentPlayTime) {
+    public String getRoomId() {
+        return roomId;
+    }
+    
+    public void setRoomId(String roomId) {
         this.roomId = roomId;
-        this.currentPlayTime = currentPlayTime;
-    }
-
-    public int getRemainingTime() {
-        return currentPlayTime;
     }
     
     public double getDistance() {
@@ -65,20 +54,68 @@ public class GameStateMessage extends Message {
         this.distance = distance;
     }
     
-    public double getGameSpeed() {
-        return gameSpeed;
-    }
-    
-    public void setGameSpeed(double gameSpeed) {
-        this.gameSpeed = gameSpeed;
-    }
-    
     public int getScore() {
         return score;
     }
     
     public void setScore(int score) {
         this.score = score;
+    }
+    
+    public int getPlayTime() {
+        return playTime;
+    }
+    
+    public void setPlayTime(int playTime) {
+        this.playTime = playTime;
+    }
+    
+    public double getPlayerY() {
+        return playerY;
+    }
+    
+    public void setPlayerY(double playerY) {
+        this.playerY = playerY;
+    }
+    
+    public int getCharState() {
+        return charState;
+    }
+    
+    public void setCharState(int charState) {
+        this.charState = charState;
+    }
+    
+    public boolean isInvincible() {
+        return isInvincible;
+    }
+    
+    public void setInvincible(boolean invincible) {
+        isInvincible = invincible;
+    }
+    
+    public long[] getKnightCooldowns() {
+        return knightCooldowns;
+    }
+    
+    public void setKnightCooldowns(long[] knightCooldowns) {
+        this.knightCooldowns = knightCooldowns;
+    }
+    
+    public long[] getHorseCooldowns() {
+        return horseCooldowns;
+    }
+    
+    public void setHorseCooldowns(long[] horseCooldowns) {
+        this.horseCooldowns = horseCooldowns;
+    }
+    
+    public boolean[] getActiveSkills() {
+        return activeSkills;
+    }
+    
+    public void setActiveSkills(boolean[] activeSkills) {
+        this.activeSkills = activeSkills;
     }
     
     public List<ObstacleData> getObstacles() {
@@ -89,38 +126,15 @@ public class GameStateMessage extends Message {
         this.obstacles = obstacles;
     }
     
-    public boolean isPlayer1HasShield() {
-        return player1HasShield;
-    }
+    // ========== 장애물 데이터 내부 클래스 ==========
     
-    public void setPlayer1HasShield(boolean player1HasShield) {
-        this.player1HasShield = player1HasShield;
-    }
-    
-    public boolean isPlayer2HasShield() {
-        return player2HasShield;
-    }
-    
-    public void setPlayer2HasShield(boolean player2HasShield) {
-        this.player2HasShield = player2HasShield;
-    }
-    
-    public long getSpeedBoostEndTime() {
-        return speedBoostEndTime;
-    }
-    
-    public void setSpeedBoostEndTime(long speedBoostEndTime) {
-        this.speedBoostEndTime = speedBoostEndTime;
-    }
-    
-    // 방해물 데이터 내부 클래스
     public static class ObstacleData implements java.io.Serializable {
         private static final long serialVersionUID = 1L;
         
         private String id;
         private double x;
         private double y;
-        private int type;       // 방해물 타입 (플래그)
+        private int type;
         private boolean destroyed;
         
         public ObstacleData() {}
@@ -134,6 +148,7 @@ public class GameStateMessage extends Message {
         }
         
         // Getters and Setters
+        
         public String getId() {
             return id;
         }

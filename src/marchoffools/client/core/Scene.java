@@ -31,16 +31,17 @@ public abstract class Scene extends JPanel {
 	}
 
 	public void setContext(SceneContext sceneContext, NetworkContext networkContext) {
-		this.sceneContext = sceneContext;
-		this.networkContext = networkContext;
-		
-		if (this instanceof NetworkListener && networkContext != null) {
-		    NetworkManager nm = networkContext.getNetworkManager();
-		    if (nm != null) {
-		        nm.setListener((NetworkListener) this);
-		    }
-		}
-	}
+        this.sceneContext = sceneContext;
+        this.networkContext = networkContext;
+        
+        if (this instanceof NetworkListener && networkContext != null) {
+            NetworkManager nm = networkContext.getNetworkManager();
+            if (nm != null) {
+                nm.setListener((NetworkListener) this);
+                System.out.println("+ NetworkListener registered: " + this.getClass().getSimpleName());
+            }
+        }
+    }
 	
     protected void switchTo(Scene newScene) {
         if (sceneContext != null) {
@@ -81,11 +82,16 @@ public abstract class Scene extends JPanel {
 	}
 	
 	public void onExit() {
-		if (this instanceof NetworkListener && networkContext != null) {
-	        NetworkManager nm = networkContext.getNetworkManager();
-	        if (nm != null) {
-	            nm.setListener(null);
-	        }
-	    }
-	}
+        if (this instanceof NetworkListener && networkContext != null) {
+            NetworkManager nm = networkContext.getNetworkManager();
+            if (nm != null) {
+                // 현재 listener가 자기 자신인 경우에만 해제
+                NetworkListener currentListener = nm.getListener();
+                if (currentListener == this) {
+                    nm.setListener(null);
+                    System.out.println("- NetworkListener unregistered: " + this.getClass().getSimpleName());
+                }
+            }
+        }
+    }
 }
