@@ -8,7 +8,6 @@ public class PlayerInfo implements Serializable {
     private String playerId;
     private String playerName;
     private int role;
-    private int characterIndex;
     private boolean ready;
     private int score; 
     
@@ -18,7 +17,6 @@ public class PlayerInfo implements Serializable {
         this.playerId = playerId;
         this.playerName = playerName;
         this.role = 0; // ROLE_NONE
-        this.characterIndex = 0;
         this.ready = false;
         this.score = 0;
     }
@@ -48,14 +46,6 @@ public class PlayerInfo implements Serializable {
         this.role = role;
     }
     
-    public int getCharacterIndex() {
-        return characterIndex;
-    }
-
-    public void setCharacterIndex(int characterIndex) {
-        this.characterIndex = characterIndex;
-    }
-    
     public boolean isReady() {
         return ready;
     }
@@ -78,7 +68,6 @@ public class PlayerInfo implements Serializable {
                "playerId='" + playerId + '\'' +
                ", playerName='" + playerName + '\'' +
                ", role=" + role +
-               ", characterIndex=" + characterIndex +
                ", ready=" + ready +
                ", score=" + score +
                '}';

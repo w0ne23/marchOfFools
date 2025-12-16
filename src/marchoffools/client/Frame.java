@@ -25,12 +25,8 @@ public class Frame extends JFrame implements SceneContext, NetworkContext{
 		pack();
 		
 		networkManager = new NetworkManager(this);
-//		
-//		// [↓↓↓ 임시 테스트 코드 ↓↓↓]
-//	    // 서버가 12345 포트로 실행 중이라고 가정
-//	    String TEST_HOST = "127.0.0.1";
-//	    int TEST_PORT = 12345;
-//	    String TEST_PLAYER_NAME = "Tester_" + (int)(Math.random() * 1000); 
+
+        ResourceManager.loadAllResources();
 
 		switchScene(new TitleScene());
 		

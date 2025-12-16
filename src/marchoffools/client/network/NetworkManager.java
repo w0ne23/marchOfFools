@@ -100,18 +100,22 @@ public class NetworkManager {
         if (!connected) return;
         
         try {
-            // DISCONNECT 메시지 전송
-            RoomActionMessage disconnectMsg = new RoomActionMessage(
-                playerId, 
-                RoomActionMessage.DISCONNECT
-            );
-            disconnectMsg.setPlayerName(playerName);
-            
-            sendMessage(MessageType.ROOM_ACTION, disconnectMsg);
-            
-            // 잠시 대기 (메시지 전송 완료)
-            Thread.sleep(100);
-            
+        	// disconnect() - sendMessage() 순환호출 오류가 있음
+        	// disconnect() 메서드 내에서 역할도 섞여있으므로
+        	// 단순 자원정리만 하도록 수정. sendMessage 호출은 이 메서드의 호출부에서 따로 하도록...
+
+//            // DISCONNECT 메시지 전송
+//            RoomActionMessage disconnectMsg = new RoomActionMessage(
+//                playerId,
+//                RoomActionMessage.DISCONNECT
+//            );
+//            disconnectMsg.setPlayerName(playerName);
+//
+//            sendMessage(MessageType.ROOM_ACTION, disconnectMsg);
+//
+//            // 잠시 대기 (메시지 전송 완료)
+//            Thread.sleep(100);
+
             // 연결 종료
             if (networkThread != null) {
                 networkThread.stopThread();
@@ -123,7 +127,7 @@ public class NetworkManager {
             connected = false;
             System.out.println("서버 연결 종료");
             
-        } catch (IOException | InterruptedException e) {
+        } catch (IOException e) {
             System.err.println("연결 종료 오류: " + e.getMessage());
         }
     }
@@ -180,7 +184,7 @@ public class NetworkManager {
             case ROOM_LIST:
                 handleRoomList((RoomListMessage) packet.getData());
                 break;
-                
+
             default:
                 System.out.println("알 수 없는 메시지 타입: " + type);
         }
@@ -212,7 +216,6 @@ public class NetworkManager {
         
         SwingUtilities.invokeLater(() -> {
             if (listener != null) {
-                // listener가 있으면 전달
                 listener.onRoomInfo(msg);
             } else {
                 // listener가 없으면 Scene 전환 시도
@@ -228,7 +231,8 @@ public class NetworkManager {
                     lobbyScene.updateRoomInfo(msg);
                 } else {
                     // 이미 LobbyScene인데 listener가 없는 경우
-                    System.err.println("Error: LobbyScene exists but listener not set");
+                    System.err.println("Warning: RoomInfo received but no listener set");
+                    System.err.println("Current scene should handle room
                     ((LobbyScene) currentScene).updateRoomInfo(msg);
                 }
             }
@@ -292,12 +296,12 @@ public class NetworkManager {
     
     private void handleRoomList(RoomListMessage msg) {
         System.out.println("RoomList 수신: " + msg.getRooms().size() + "개 방");
-        
+
         if (listener != null) {
             SwingUtilities.invokeLater(() -> listener.onRoomList(msg));
         }
     }
-    
+
     private void showError(int code, String message) {
         String title = "오류";
         

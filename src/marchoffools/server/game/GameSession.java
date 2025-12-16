@@ -3,81 +3,239 @@ package marchoffools.server.game;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import marchoffools.common.message.GameResultMessage;
 import marchoffools.common.message.GameStateMessage;
+import marchoffools.common.model.PlayerInfo;
 import marchoffools.common.protocol.MessageType;
 
+/**
+ * 한 판의 게임 진행을 관리하는 클래스
+ */
 public class GameSession {
 
+    private static final int FPS = 60;
+    private static final long FRAME_TIME = 1000 / FPS; // 약 16ms
+    private static final int BROADCAST_INTERVAL = 2; // 매 2프레임마다 (30hz)
+
     private String roomId;
-    private int playTime = 0;
-    private boolean isGameRunning = false;
-    
-    private ScheduledExecutorService gameLoop;
     private Room room;
+    private GameState state;
+    private ObstacleSpawner spawner;
+
+    private int frameCount = 0;
+    private boolean isRunning = false;
+    
+    private long gameStartTime = 0; // 게임 시작 시각 (밀리초)
+
+    private ScheduledExecutorService gameLoop;
 
     public GameSession(Room room) {
         this.room = room;
         this.roomId = room.getRoomId();
+        this.state = new GameState(room);
+        this.spawner = new ObstacleSpawner();
     }
-
+    
     public void startGame() {
-        isGameRunning = true;
-        playTime = 0;
+        System.out.println("========================================");
+        System.out.println("🎮 GameSession.startGame() CALLED");
+        System.out.println("   Room ID: " + roomId);
+        System.out.println("========================================");
         
-        // 1초마다 실행
+        isRunning = true;
+        frameCount = 0;
+        state.reset();
+        
+        System.out.println("✅ Creating game loop...");
         gameLoop = Executors.newSingleThreadScheduledExecutor();
-        gameLoop.scheduleAtFixedRate(this::gameTick, 0, 1, TimeUnit.SECONDS);
+        gameLoop.scheduleAtFixedRate(this::update, 0, FRAME_TIME, TimeUnit.MILLISECONDS);
         
-        System.out.println("[GameSession] Timer Started: " + roomId);
+        System.out.println("✅ Game loop started!");
+        System.out.println("   FPS: " + FPS);
+        System.out.println("   Frame time: " + FRAME_TIME + "ms");
+        System.out.println("========================================");
     }
 
-    private void gameTick() {
-        if (!isGameRunning) {
-            stopGame();
+    /**
+     * 매 프레임마다 호출되는 업데이트 메서드
+     */
+    private void update() {
+        if (!isRunning) {
             return;
         }
 
-        try {
-            // 1. 시간 증가
-        	playTime++;
+        if (room == null) {
+            finishGame();
+            isRunning = false;
+            return;
+        }
 
-            // 2. 시간 정보 전송
+        if (frameCount % 60 == 0) {
+            System.out.println("[GameSession.update] frame=" + frameCount);
+        }
+
+        // 게임 상태 업데이트
+        double deltaTime = FRAME_TIME / 1000.0;
+        state.update(deltaTime);
+
+        // 장애물 생성 시도
+        spawner.trySpawn(state.getTrackController());
+
+        // 상태 브로드캐스트
+        if (frameCount % BROADCAST_INTERVAL == 0) {
             broadcastGameState();
+        }
 
-        } catch (Exception e) {
-            e.printStackTrace();
-            stopGame();
+        // 게임 종료 조건 체크
+        if (state.isGameOver()) {
+            finishGame();
+            isRunning = false;
+            return;
+        }
+
+        frameCount++;
+    }
+
+    /**
+     * 게임 상태를 클라이언트에 브로드캐스트
+     */
+    private void broadcastGameState() {
+        GameStateMessage msg = new GameStateMessage();
+        
+        TrackController track = state.getTrackController();
+        
+        // 기본 정보 (TrackController에서 가져옴)
+        msg.setRoomId(roomId);
+        msg.setDistance(track.getDistance());
+        msg.setScore(track.getScore());
+        msg.setPlayTime(state.getPlayTime());
+        
+        // 캐릭터 상태
+        msg.setPlayerY(state.getPlayerY());
+        msg.setCharState(state.getCharState());
+        msg.setInvincible(state.isInvincible());
+        
+        // 장애물 리스트
+        msg.setObstacles(track.getObstacles());
+        
+        // 스킬 쿨타임
+        long[] cooldowns = state.getAllCooldowns();
+        msg.setKnightCooldowns(new long[]{cooldowns[0], cooldowns[1], cooldowns[2]});
+        msg.setHorseCooldowns(new long[]{cooldowns[3], cooldowns[4], cooldowns[5]});
+        
+        // 활성 스킬
+        msg.setActiveSkills(state.getActiveSkills());
+        
+        room.broadcast(MessageType.GAME_STATE, msg);
+        
+        // 10초마다 한 번씩만 상태 로그
+        if (frameCount % 600 == 0) { // 60fps * 10초 = 600프레임
+            System.out.println(String.format(
+                "📊 [%ds] 거리: %.0fm | 점수: %d | 장애물: %d개 | Y: %.0f",
+                state.getPlayTime(),
+                track.getDistance(),
+                track.getScore(),
+                msg.getObstacles().size(),
+                state.getPlayerY()
+            ));
         }
     }
 
-    private void broadcastGameState() {
-        
-        GameStateMessage msg = new GameStateMessage(roomId, playTime);
-        
-        // Room에 있는 broadcast 메서드 활용
-        room.broadcast(MessageType.GAME_STATE, msg); 
-    }
-
+    /**
+     * 게임 종료 처리
+     */
     private void finishGame() {
-        System.out.println("[GameSession] Time Over: " + roomId);
-        isGameRunning = false;
-        stopGame();
+        TrackController track = state.getTrackController();
         
-        // Room 클래스의 상태 변경 및 알림 메서드 호출
+        System.out.println("========================================");
+        System.out.println("🏁 게임 종료: " + roomId);
+        System.out.println("   최종 점수: " + track.getScore());
+        System.out.println("   플레이 시간: " + state.getPlayTime() + "초");
+        System.out.println("========================================");
+        
+        isRunning = false;
+        stopGame();
+
+        // GameResultMessage 생성 및 전송
+        sendGameResult();
+
+        // 방 상태 변경
         room.setStatus(Room.STATUS_FINISHED);
         room.broadcastRoomInfo(Room.STATUS_FINISHED);
-        
-        // TODO: 여기서 최종 playTime과 파괴한 장애물 수를 가지고 랭킹 처리
     }
 
+    /**
+     * 게임 결과 생성 및 전송
+     */
+    private void sendGameResult() {
+        GameResultMessage result = new GameResultMessage();
+        
+        TrackController track = state.getTrackController();
+        
+        // 플레이어 정보 설정
+        PlayerInfo knightPlayer = state.getKnightPlayer();
+        PlayerInfo horsePlayer = state.getHorsePlayer();
+        
+        if (knightPlayer != null) {
+            result.setPlayer1Id(knightPlayer.getPlayerId());
+            result.setPlayer1Name(knightPlayer.getPlayerName());
+        }
+        
+        if (horsePlayer != null) {
+            result.setPlayer2Id(horsePlayer.getPlayerId());
+            result.setPlayer2Name(horsePlayer.getPlayerName());
+        }
+        
+        // 게임 결과 통계
+        result.setFinalDistance(track.getDistance());
+        result.setTotalScore(track.getScore());
+        result.setPlayTime(System.currentTimeMillis() - gameStartTime);
+        
+        // 장애물 통계
+        result.setObstaclesDestroyed(track.getObstaclesDestroyed());
+        result.setObstaclesAvoided(track.getObstaclesAvoided());
+        
+        // 개별 기여도 (기사가 파괴, 말이 회피)
+        result.setPlayer1Destroyed(track.getObstaclesDestroyed());
+        result.setPlayer2Avoided(track.getObstaclesAvoided());
+        
+        // 결과 브로드캐스트
+        room.broadcast(MessageType.GAME_RESULT, result);
+        
+        System.out.println("📈 게임 결과 전송 완료");
+        System.out.println("   - 파괴한 장애물: " + track.getObstaclesDestroyed());
+        System.out.println("   - 회피한 장애물: " + track.getObstaclesAvoided());
+    }
+
+    /**
+     * 게임 루프 중지
+     */
     public void stopGame() {
         if (gameLoop != null && !gameLoop.isShutdown()) {
             gameLoop.shutdown();
+            try {
+                if (!gameLoop.awaitTermination(1, TimeUnit.SECONDS)) {
+                    gameLoop.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                gameLoop.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
         }
     }
-    
-    // 현재까지 생존한 시간을 반환
+
+    /**
+     * 현재 게임 진행 시간 반환
+     */
     public int getPlayTime() {
-        return playTime;
+        return state.getPlayTime();
+    }
+
+    /**
+     * 게임 상태 객체 반환
+     */
+    public GameState getState() {
+        return state;
     }
 }

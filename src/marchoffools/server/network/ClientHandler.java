@@ -8,10 +8,13 @@ import java.util.List;
 
 import marchoffools.common.protocol.MessageType;
 import marchoffools.common.protocol.Packet;
+import marchoffools.server.game.CharacterController;
+import marchoffools.server.game.GameSession;
 import marchoffools.server.game.Room;
 import marchoffools.server.game.RoomManager;
 import marchoffools.common.message.*; 
 
+// 현재 역할이 과도함
 public class ClientHandler extends Thread {
     
     private Socket socket;
@@ -509,11 +512,9 @@ public class ClientHandler extends Thread {
     
     private void handleGameInput(GameInputMessage msg) {
         int inputType = msg.getInputType();
-        System.out.println("게임 입력 수신: type=" + inputType + ", value=" + msg.getValue() + " from " + playerName);
         
         // 방에 있는지 확인
         if (currentRoomId == null) {
-            System.out.println("Warning: GameInput received but player not in room");
             return;
         }
         
@@ -521,41 +522,64 @@ public class ClientHandler extends Thread {
         Room room = roomManager.getRoom(currentRoomId);
         
         if (room == null) {
-            System.out.println("Warning: Room not found for game input broadcast");
+            return;
+        }
+        
+        // 게임 세션 가져오기
+        GameSession session = room.getGameSession();
+        if (session == null) {
             return;
         }
         
         // 입력 타입별 처리
         switch (inputType) {
-            case GameInputMessage.EMOTION:
-                // 감정 표현은 항상 브로드캐스트
-                System.out.println("감정 표현: " + playerName + " -> " + msg.getValue());
-                Packet emotionPacket = new Packet(MessageType.GAME_INPUT, msg);
-                room.broadcastPacket(emotionPacket);
-                System.out.println("✓ 감정 표현 브로드캐스트 완료");
+            case GameInputMessage.JUMP:
+                // 점프 처리
+                session.getState().startJump();
+                System.out.println("✔ Jump: " + playerName);
                 break;
                 
-            case GameInputMessage.JUMP:
             case GameInputMessage.SLIDE:
-            case GameInputMessage.ATTACK:
-                // 게임 중일 때만 처리
-                if (!room.isPlaying()) {
-                    System.out.println("Warning: Game input sent but game not started");
-                    return;
-                }
-                
-                // TODO: 게임 로직 처리 후 브로드캐스트
-                Packet gamePacket = new Packet(MessageType.GAME_INPUT, msg);
-                room.broadcastPacket(gamePacket);
+                // 슬라이드 처리 (키 누름/뗌)
+                boolean isSliding = msg.getValue() == 1;
+                session.getState().getCharController().setSliding(isSliding);
+                System.out.println("✔ Slide " + (isSliding ? "ON" : "OFF") + ": " + playerName);
                 break;
                 
             case GameInputMessage.USE_ITEM:
-                // TODO: 아이템 사용 처리
-                System.out.println("아이템 사용 요청: " + playerName);
+                // 스킬 처리
+                int skillId = msg.getValue();
+                
+                // 쿨타임 중
+                if (!session.getState().canUseSkill(skillId)) {
+                    long remainingCooldown = session.getState().getRemainingCooldown(skillId);
+                    System.out.println("✗ Skill cooldown: " + getSkillName(skillId) 
+                        + " (" + playerName + ") - " + (remainingCooldown / 1000.0) + "s remaining");
+                    return;
+                }
+                
+                session.getState().useSkill(skillId);
+                session.getState().activateSkill(skillId);
+                System.out.println("✔ Skill used: " + getSkillName(skillId) + " (" + playerName + ")");
                 break;
                 
-            default:
-                System.out.println("Unknown game input type: " + inputType);
+            case GameInputMessage.EMOTION:
+                // 감정 표현은 그냥 브로드캐스트
+                break;
+        }
+        
+        // 브로드캐스트
+        room.broadcast(MessageType.GAME_INPUT, msg);
+    }
+
+    // DEBUG: 스킬 이름 반환
+    private String getSkillName(int skillId) {
+        switch (skillId) {
+            case 0: return "외침";
+            case 1: return "찌르기";
+            case 2: return "베기";
+            case 5: return "돌진";
+            default: return "Unknown";
         }
     }
     
