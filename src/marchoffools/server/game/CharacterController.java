@@ -91,6 +91,7 @@ public class CharacterController {
         // 이미 점프 중이면 무시
         if (charState == STATE_JUMPING) {
             System.out.println("  ❌ Already jumping - ignored");
+            return;
         }
         
         // 점프 실행
