@@ -417,9 +417,9 @@ public class ClientHandler extends Thread {
             return;
         }
 
-        // 2. 역할 중복 체크 
+        // 2. 역할 중복 체크 (ROLE_NONE은 취소이므로 중복 체크 제외)
         int requestedRole = msg.getRoleType();
-        if (room.isRoleTaken(requestedRole, playerId)) {
+        if (requestedRole != RoomActionMessage.ROLE_NONE && room.isRoleTaken(requestedRole, playerId)) {
             sendResponse(ResponseMessage.error(
                 ResponseMessage.ROLE_ALREADY_TAKEN, 
                 "이미 선택된 역할입니다"

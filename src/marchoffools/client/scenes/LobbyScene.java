@@ -705,10 +705,14 @@ public class LobbyScene extends Scene implements NetworkListener {
         
         // 역할 선택 버튼
         if (bSelectKnight != null) {
-            bSelectKnight.setEnabled(enabled && myRole == ROLE_NONE && !isRoleAlreadyTaken(ROLE_KNIGHT));
+            boolean canSelectKnight = myRole == ROLE_KNIGHT 
+                                   || (myRole == ROLE_NONE && !isRoleAlreadyTaken(ROLE_KNIGHT)); // 또는 선택 가능
+            bSelectKnight.setEnabled(enabled && canSelectKnight);
         }
         if (bSelectHorse != null) {
-            bSelectHorse.setEnabled(enabled && myRole == ROLE_NONE && !isRoleAlreadyTaken(ROLE_HORSE));
+            boolean canSelectHorse = myRole == ROLE_HORSE  
+                                  || (myRole == ROLE_NONE && !isRoleAlreadyTaken(ROLE_HORSE)); // 또는 선택 가능
+            bSelectHorse.setEnabled(enabled && canSelectHorse);
         }
         
         // 캐릭터 선택 버튼
@@ -805,16 +809,21 @@ public class LobbyScene extends Scene implements NetworkListener {
             if (this.myRole == ROLE_KNIGHT) {
                 bSelectKnight.setButtonColors(BLUE, BLUE, BLUE);
                 bSelectHorse.setButtonColors(LIGHT_GRAY, WHITE, GRAY);
+                bSelectKnight.setEnabled(true);
+                bSelectHorse.setEnabled(false);
             } else if (this.myRole == ROLE_HORSE) {
                 bSelectKnight.setButtonColors(LIGHT_GRAY, WHITE, GRAY);
                 bSelectHorse.setButtonColors(BLUE, BLUE, BLUE);
+                bSelectKnight.setEnabled(false);
+                bSelectHorse.setEnabled(true);
             } else {
                 bSelectKnight.setButtonColors(LIGHT_GRAY, WHITE, GRAY);
                 bSelectHorse.setButtonColors(LIGHT_GRAY, WHITE, GRAY);
+                bSelectKnight.setEnabled(!isRoleAlreadyTaken(ROLE_KNIGHT));
+                bSelectHorse.setEnabled(!isRoleAlreadyTaken(ROLE_HORSE));
             }
 
             // 2-3. 캐릭터 선택 버튼 활성화 동기화
-            // 역할(Role)이 선택되어 있어야만(NONE이 아니면) 활성화
             if (this.myRole != ROLE_NONE) {
                 bSelectCharacter.setEnabled(true);
                 bSelectCharacter.setButtonColors(LIGHT_GRAY, WHITE, GRAY);
@@ -917,8 +926,11 @@ public class LobbyScene extends Scene implements NetworkListener {
         NetworkManager nm = getNetworkManager();
         if (nm == null) return;
         
+        // 토글 로직: 이미 선택한 역할을 다시 클릭하면 취소 (ROLE_NONE으로 설정)
+        int targetRole = (myRole == role) ? ROLE_NONE : role;
+        
         RoomActionMessage msg = new RoomActionMessage(nm.getPlayerId(), SELECT_CHARACTER);
-        msg.setRoleType(role);
+        msg.setRoleType(targetRole);
         nm.sendMessage(MessageType.ROOM_ACTION, msg);
     }
     
