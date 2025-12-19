@@ -22,7 +22,6 @@ public class CharacterController {
 
     // ========== 캐릭터 상태 ==========
     private int charState = STATE_IDLE;
-    private long stateStartTime = 0;
     private boolean isAttacking = false;
     private long attackEndTime = 0;
 
@@ -49,7 +48,6 @@ public class CharacterController {
      */
     public void setCharState(int state) {
         this.charState = state;
-        this.stateStartTime = System.currentTimeMillis();
     }
 
     /**
@@ -93,12 +91,12 @@ public class CharacterController {
         // 이미 점프 중이면 무시
         if (charState == STATE_JUMPING) {
             System.out.println("  ❌ Already jumping - ignored");
+            return;
         }
         
         // 점프 실행
         charState = STATE_JUMPING;
         verticalVelocity = JUMP_INITIAL_VELOCITY;
-        stateStartTime = System.currentTimeMillis();
         
         System.out.println("  ✅ Jump started!");
         System.out.println("  New state: " + charState);
@@ -318,7 +316,6 @@ public class CharacterController {
      */
     public void reset() {
         charState = STATE_IDLE;
-        stateStartTime = 0;
         playerY = GameConstants.CHARACTER_Y;
         verticalVelocity = 0.0;
         isSliding = false;

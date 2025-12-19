@@ -348,80 +348,6 @@ public class GameScene extends Scene implements NetworkListener {
     }
     
     // ==========================================
-    //        쿨다운 오버레이 패널
-    // ==========================================
-
-    /**
-     * 스킬 쿨다운을 시각적으로 표시하는 오버레이
-     */
-    private class CooldownOverlay extends JPanel {
-        private static final long serialVersionUID = 1L;
-
-        private float cooldownRatio = 1.0f;  // 0.0 (끝) ~ 1.0 (시작)
-        private double remainingSeconds = 0.0;
-
-        public CooldownOverlay() {
-            setOpaque(false);
-            setLayout(null);
-        }
-
-        public void setCooldownRatio(float ratio) {
-            this.cooldownRatio = Math.max(0, Math.min(1, ratio));
-            repaint();
-        }
-
-        public void setRemainingSeconds(double seconds) {
-            this.remainingSeconds = seconds;
-            repaint();
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            super.paintComponent(g);
-
-            if (!isVisible() || cooldownRatio <= 0) return;
-
-            Graphics2D g2d = (Graphics2D) g;
-            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                                RenderingHints.VALUE_ANTIALIAS_ON);
-            g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
-                                RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-
-            int width = getWidth();
-            int height = getHeight();
-
-            // 반투명 검정 오버레이 (위에서부터 cooldownRatio 비율만큼)
-            int overlayHeight = (int) (height * cooldownRatio);
-            g2d.setColor(new Color(0, 0, 0, 180));
-            g2d.fillRoundRect(0, 0, width, overlayHeight, 10, 10);
-
-            // 남은 시간 텍스트 (중앙)
-            if (remainingSeconds > 0.05) {
-                g2d.setColor(Color.WHITE);
-                g2d.setFont(new Font("Arial", Font.BOLD, 28));
-
-                String timeText = String.format("%.0f", Math.ceil(remainingSeconds));
-                int textWidth = g2d.getFontMetrics().stringWidth(timeText);
-                int textHeight = g2d.getFontMetrics().getAscent();
-
-                int textX = (width - textWidth) / 2;
-                int textY = height / 2 + textHeight / 2 - 5;
-
-                // 텍스트 외곽선 (더 잘 보이도록)
-                g2d.setColor(Color.BLACK);
-                g2d.drawString(timeText, textX - 1, textY - 1);
-                g2d.drawString(timeText, textX + 1, textY - 1);
-                g2d.drawString(timeText, textX - 1, textY + 1);
-                g2d.drawString(timeText, textX + 1, textY + 1);
-
-                // 실제 텍스트
-                g2d.setColor(Color.WHITE);
-                g2d.drawString(timeText, textX, textY);
-            }
-        }
-    }
-
-    // ==========================================
     //        키보드 입력 설정
     // ==========================================
     
@@ -701,7 +627,7 @@ public class GameScene extends Scene implements NetworkListener {
         private Sprite player;
         private Map<String, Sprite> obstacles;
         private List<Sprite> skillRanges;
-        private GameStateMessage lastGameState;
+//        private GameStateMessage lastGameState;
         
         public GameCanvas() {
             setOpaque(false);
@@ -723,7 +649,6 @@ public class GameScene extends Scene implements NetworkListener {
         }
 
         public void updateGameState(GameStateMessage msg) {
-            this.lastGameState = msg;
             updateCharacter(msg);
             updateObstacles(msg.getObstacles());
             updateSkillRanges(msg.getActiveSkills());

@@ -1,7 +1,5 @@
 package marchoffools.common.model;
 
-import java.util.Random;
-
 public enum ObstacleType {
 	GROUND_OBSTACLE(0, "하방 장애물", 
         GameConstants.GROUND_OBSTACLE_WIDTH, 
@@ -80,7 +78,7 @@ public enum ObstacleType {
                 return type;
             }
         }
-        return GROUND_OBSTACLE;
+        return null;
     }
     
     // 타입 확인
