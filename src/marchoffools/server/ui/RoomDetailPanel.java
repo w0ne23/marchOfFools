@@ -37,7 +37,7 @@ public class RoomDetailPanel extends JPanel {
     
     private void initComponents() {
         // 방 정보 라벨
-        roomIdLabel = new JLabel("📋 방을 선택하세요");
+        roomIdLabel = new JLabel("[INFO] 방을 선택하세요");
         roomIdLabel.setFont(new Font("맑은 고딕", Font.BOLD, 16));
         
         statusLabel = new JLabel("");
@@ -46,26 +46,26 @@ public class RoomDetailPanel extends JPanel {
         // 플레이어 패널
         playersPanel = new JPanel();
         playersPanel.setLayout(new BoxLayout(playersPanel, BoxLayout.Y_AXIS));
-        playersPanel.setBorder(BorderFactory.createTitledBorder("👥 플레이어"));
+        playersPanel.setBorder(BorderFactory.createTitledBorder("플레이어"));
         playersPanel.setBackground(Color.WHITE);
         playersPanel.setPreferredSize(new Dimension(0, 80));
         
         // 로그 영역
         chatLog = new JTextArea();
         chatLog.setEditable(false);
-        chatLog.setFont(new Font("맑은 고딕", Font.PLAIN, 12));
+        chatLog.setFont(new Font("Monospaced", Font.PLAIN, 12));
         chatLog.setLineWrap(true);
         chatLog.setWrapStyleWord(true);
         
         gameLog = new JTextArea();
         gameLog.setEditable(false);
-        gameLog.setFont(new Font("Consolas", Font.PLAIN, 12));
+        gameLog.setFont(new Font("Monospaced", Font.PLAIN, 12));
         gameLog.setBackground(new Color(40, 44, 52));
         gameLog.setForeground(new Color(171, 178, 191));
         gameLog.setLineWrap(true);
         
         // 버튼
-        kickRoomBtn = new JButton("🚪 방 강제 종료");
+        kickRoomBtn = new JButton("방 강제 종료");
         kickRoomBtn.setEnabled(false);
         kickRoomBtn.setBackground(new Color(244, 67, 54));
         kickRoomBtn.addActionListener(e -> {
@@ -74,7 +74,7 @@ public class RoomDetailPanel extends JPanel {
             }
         });
         
-        clearLogBtn = new JButton("🚮 로그 지우기");
+        clearLogBtn = new JButton("로그 지우기");
         clearLogBtn.addActionListener(e -> {
             chatLog.setText("");
             gameLog.setText("");
@@ -105,17 +105,17 @@ public class RoomDetailPanel extends JPanel {
         topPanel.add(infoPanel, BorderLayout.NORTH);
         topPanel.add(playersPanel, BorderLayout.CENTER);
         
-        // 중앙: 로그 영역 (채팅 | 게임)
+        // 중앙: 로그 영역
         JSplitPane logSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
         logSplit.setResizeWeight(0.5);
         
         JPanel chatPanel = new JPanel(new BorderLayout());
-        chatPanel.setBorder(BorderFactory.createTitledBorder("💬 채팅 로그"));
+        chatPanel.setBorder(BorderFactory.createTitledBorder("채팅 로그"));
         JScrollPane chatScroll = new JScrollPane(chatLog);
         chatPanel.add(chatScroll, BorderLayout.CENTER);
         
         JPanel gamePanel = new JPanel(new BorderLayout());
-        gamePanel.setBorder(BorderFactory.createTitledBorder("🎮 게임 로그"));
+        gamePanel.setBorder(BorderFactory.createTitledBorder("게임 로그"));
         JScrollPane gameScroll = new JScrollPane(gameLog);
         gamePanel.add(gameScroll, BorderLayout.CENTER);
         
@@ -141,18 +141,18 @@ public class RoomDetailPanel extends JPanel {
         currentRoomId = room.getRoomId();
         
         // 방 정보 업데이트
-        roomIdLabel.setText("📋 방 ID: " + room.getRoomId());
+        roomIdLabel.setText("[INFO] 방 ID: " + room.getRoomId());
         
         String status;
         Color statusColor;
         if (room.isPlaying()) {
-            status = "🔴 게임 중";
+            status = "[게임 중]";
             statusColor = new Color(192, 0, 0);
         } else if (room.isFull()) {
-            status = "🟢 대기 (준비 가능)";
+            status = "[대기 - 준비 가능]";
             statusColor = new Color(0, 128, 0);
         } else {
-            status = "🟡 대기 중 (" + room.getPlayerCount() + "/2)";
+            status = "[대기 중] (" + room.getPlayerCount() + "/2)";
             statusColor = new Color(200, 150, 0);
         }
         statusLabel.setText(status);
@@ -211,26 +211,26 @@ public class RoomDetailPanel extends JPanel {
         
         // 방장 표시
         if (player.getPlayerId().equals(hostId)) {
-            sb.append("👑 ");
+            sb.append("[방장] ");
         } else {
-            sb.append("    ");
+            sb.append("       ");
         }
         
         sb.append(player.getPlayerName());
         
         // 역할 표시
         String role = switch (player.getRole()) {
-            case 1 -> " | 🛡 기사";
-            case 2 -> " | 🐴 말";
-            default -> " | ❓ 미선택";
+            case 1 -> " | 기사";
+            case 2 -> " | 말";
+            default -> " | 미선택";
         };
         sb.append(role);
         
         // 준비 상태
         if (player.isReady()) {
-            sb.append(" | ✅ 준비 완료");
+            sb.append(" | [준비 완료]");
         } else {
-            sb.append(" | ⏳ 대기");
+            sb.append(" | [대기]");
         }
         
         return sb.toString();
@@ -238,7 +238,7 @@ public class RoomDetailPanel extends JPanel {
     
     public void clear() {
         currentRoomId = null;
-        roomIdLabel.setText("📋 방을 선택하세요");
+        roomIdLabel.setText("[INFO] 방을 선택하세요");
         statusLabel.setText("");
         playersPanel.removeAll();
         playersPanel.revalidate();

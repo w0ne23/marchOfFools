@@ -37,7 +37,7 @@ public class LogPanel extends JPanel {
     
     public LogPanel(String title) {
         setLayout(new BorderLayout());
-        setBorder(BorderFactory.createTitledBorder("📝 " + title));
+        setBorder(BorderFactory.createTitledBorder("[LOG] " + title));
         
         initComponents();
     }
@@ -46,7 +46,7 @@ public class LogPanel extends JPanel {
         // 로그 영역
         logArea = new JTextArea();
         logArea.setEditable(false);
-        logArea.setFont(new Font("Consolas", Font.PLAIN, 12));
+        logArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
         logArea.setBackground(new Color(30, 30, 30));
         logArea.setForeground(new Color(200, 200, 200));
         logArea.setCaretColor(Color.WHITE);
@@ -67,17 +67,17 @@ public class LogPanel extends JPanel {
         });
         
         // 버튼들
-        JButton saveBtn = new JButton("💾 저장");
+        JButton saveBtn = new JButton("저장");
         saveBtn.addActionListener(e -> saveLog());
         
-        JButton clearBtn = new JButton("🗑 지우기");
+        JButton clearBtn = new JButton("지우기");
         clearBtn.addActionListener(e -> {
             logArea.setText("");
             allLogs.clear();
             lineCount = 0;
         });
         
-        JButton scrollBtn = new JButton("🔽 맨 아래");
+        JButton scrollBtn = new JButton("맨 아래");
         scrollBtn.addActionListener(e -> {
             logArea.setCaretPosition(logArea.getDocument().getLength());
         });
@@ -92,8 +92,8 @@ public class LogPanel extends JPanel {
     }
     
     public void appendLog(String timestamp, String level, String message) {
-    	// 모든 로그 저장
-    	LogEntry entry = new LogEntry(timestamp, level, message);
+        // 모든 로그 저장
+        LogEntry entry = new LogEntry(timestamp, level, message);
         allLogs.add(entry);
         
         // 로그 수 제한
@@ -109,11 +109,11 @@ public class LogPanel extends JPanel {
     
     private void appendToDisplay(String timestamp, String level, String message) {
         String prefix = switch (level) {
-	        case "ERROR" -> "❌ [ERROR]";
-	        case "WARN"  -> "⚠️ [WARN]";
-	        case "INFO"  -> "💬️ [INFO]";
-	        case "DEBUG" -> "🔧 [DEBUG]";
-            default      -> "   [" + level + "]";
+            case "ERROR" -> "[ERROR]";
+            case "WARN"  -> "[WARN]";
+            case "INFO"  -> "[INFO]";
+            case "DEBUG" -> "[DEBUG]";
+            default      -> "[" + level + "]";
         };
         
         String formatted = String.format("[%s] %s %s%n", timestamp, prefix, message);
@@ -139,7 +139,7 @@ public class LogPanel extends JPanel {
     
     private void trimLog() {
         try {
-        	Document doc = logArea.getDocument();
+            Document doc = logArea.getDocument();
             int lineCount = logArea.getLineCount();
             if (lineCount > MAX_LOG_LINES) {
                 int end = logArea.getLineEndOffset(lineCount - MAX_LOG_LINES);
@@ -159,7 +159,7 @@ public class LogPanel extends JPanel {
         chooser.setSelectedFile(new File(defaultName));
         
         if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
-        	File saveFile = chooser.getSelectedFile();
+            File saveFile = chooser.getSelectedFile();
             
             System.out.println("저장 시도 경로: " + saveFile.getAbsolutePath());
             
