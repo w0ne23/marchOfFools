@@ -49,8 +49,7 @@ public class GameScene extends Scene implements NetworkListener {
     private String opponentName;
     private int myRole;
 
-    private JLabel lScore;
-    private JLabel lTimer;
+    private JLabel lStage, lScore, lTimer;
     private GameCanvas gameCanvas;
     
     private int score = 0;
@@ -103,7 +102,7 @@ public class GameScene extends Scene implements NetworkListener {
         addMouseListener(sceneMouseListener);
         
 //        createExitButton();
-        createScoreTimeSection();
+        createLabelSection();
         createEmotionSection();
         createGameCanvas();
         createSkillUseSection();
@@ -181,24 +180,30 @@ public class GameScene extends Scene implements NetworkListener {
     //        UI 컴포넌트 생성
     // ==========================================
     
-    private void createScoreTimeSection() {
+    private void createLabelSection() {
         JPanel topPanel = new JPanel();
         topPanel.setLayout(null); 
         topPanel.setOpaque(false);
-        topPanel.setBounds(0, 30, WINDOW_WIDTH, 100);
+        topPanel.setBounds(0, 0, WINDOW_WIDTH, 120);
         
+		lStage = new JLabel("Stage 0", SwingConstants.LEFT);
+		lStage.setFont(getFont().deriveFont(18f));
+		lStage.setForeground(BLACK);
+		lStage.setBounds(12, 12, WINDOW_WIDTH, 20);
+		topPanel.add(lStage);
+		
         lScore = new JLabel(String.format("%,d", score), SwingConstants.CENTER);
         lScore.setFont(getFont().deriveFont(Font.BOLD, 48f));
         lScore.setForeground(BLACK);
-        lScore.setBounds(0, 0, WINDOW_WIDTH, 50);
+        lScore.setBounds(0, 30, WINDOW_WIDTH, 50);
         topPanel.add(lScore);
         
         lTimer = new JLabel("⏱ " + formatTime(playTime), SwingConstants.CENTER);
         lTimer.setFont(getFont().deriveFont(Font.BOLD, 24f));
         lTimer.setForeground(BLACK);
-        lTimer.setBounds(0, 55, WINDOW_WIDTH, 30);
+        lTimer.setBounds(0, 85, WINDOW_WIDTH, 30);
         topPanel.add(lTimer);
-        
+
         add(topPanel, Integer.valueOf(javax.swing.JLayeredPane.PALETTE_LAYER));
     }
     
@@ -471,12 +476,13 @@ public class GameScene extends Scene implements NetworkListener {
     // ==========================================
     //        UI 업데이트
     // ==========================================
-
+    public void updateStage(String stage) {
+    	lStage.setText(stage);
+    }
+    
     public void updateTimer(int seconds) {
-        SwingUtilities.invokeLater(() -> {
-            this.playTime = seconds;
-            lTimer.setText("⏱ " + formatTime(seconds));
-        });
+        this.playTime = seconds;
+        lTimer.setText("⏱ " + formatTime(seconds));
     }
     
     private String formatTime(int seconds) {
@@ -486,10 +492,8 @@ public class GameScene extends Scene implements NetworkListener {
     }
     
     public void updateScore(int newScore) {
-        SwingUtilities.invokeLater(() -> {
-            this.score = newScore;
-            lScore.setText(String.format("%,d", score));
-        });
+        this.score = newScore;
+        lScore.setText(String.format("%,d", score));
     }
 
     private String getRoleName(int role) {
@@ -774,12 +778,23 @@ public class GameScene extends Scene implements NetworkListener {
                 skillRange.draw(g2d);
             }
             
-            // 2. 장애물
+            // 2. 몬스터 (뒤)
             for (Sprite obstacle : obstacles.values()) {
-                obstacle.draw(g2d);
+                ObstacleType type = ObstacleType.getById(obstacle.getSubType());
+                if (type.isMonster()) {
+                    obstacle.draw(g2d);
+                }
             }
             
-            // 3. 플레이어 (제일 앞)
+            // 3. 장애물 (앞)
+            for (Sprite obstacle : obstacles.values()) {
+                ObstacleType type = ObstacleType.getById(obstacle.getSubType());
+                if (type.isObstacle()) {
+                    obstacle.draw(g2d);
+                }
+            }
+            
+            // 4. 플레이어 (제일 앞)
             player.draw(g2d);
         }
     }
@@ -908,6 +923,7 @@ public class GameScene extends Scene implements NetworkListener {
     public void onGameState(GameStateMessage msg) {
         SwingUtilities.invokeLater(() -> {
         	requestFocusInWindow();
+        	updateStage(msg.getStageInfo());
             updateScore(msg.getScore());
             updateTimer(msg.getPlayTime());
             gameCanvas.updateGameState(msg);

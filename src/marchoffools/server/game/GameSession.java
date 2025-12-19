@@ -6,6 +6,7 @@ import java.util.concurrent.TimeUnit;
 
 import marchoffools.common.message.GameResultMessage;
 import marchoffools.common.message.GameStateMessage;
+import marchoffools.common.model.GameModeType;
 import marchoffools.common.model.PlayerInfo;
 import marchoffools.common.protocol.MessageType;
 
@@ -21,7 +22,6 @@ public class GameSession {
     private String roomId;
     private Room room;
     private GameState state;
-    private ObstacleSpawner spawner;
 
     private int frameCount = 0;
     private boolean isRunning = false;
@@ -30,11 +30,10 @@ public class GameSession {
 
     private ScheduledExecutorService gameLoop;
 
-    public GameSession(Room room) {
+    public GameSession(Room room, GameModeType gameModeType) {
         this.room = room;
         this.roomId = room.getRoomId();
-        this.state = new GameState(room);
-        this.spawner = new ObstacleSpawner();
+        this.state = new GameState(room, gameModeType);
     }
     
     public void startGame() {
@@ -45,13 +44,10 @@ public class GameSession {
         
         isRunning = true;
         frameCount = 0;
-        
-        // 게임 시작 시간 기록
-        gameStartTime = System.currentTimeMillis();
-        System.out.println("✅ Game start time recorded: " + gameStartTime);
-        
         state.reset();
-        spawner.reset();
+        gameStartTime = System.currentTimeMillis();
+        state.getSpawner().startSpawn();
+        System.out.println("✅ Game started at: " + gameStartTime);
         
         System.out.println("✅ Creating game loop...");
         gameLoop = Executors.newSingleThreadScheduledExecutor();
@@ -60,6 +56,7 @@ public class GameSession {
         System.out.println("✅ Game loop started!");
         System.out.println("   FPS: " + FPS);
         System.out.println("   Frame time: " + FRAME_TIME + "ms");
+        System.out.println("   Mode: " + room.getGameMode().getDisplayName());
         System.out.println("========================================");
     }
 
@@ -77,18 +74,13 @@ public class GameSession {
             return;
         }
 
-        if (frameCount % 60 == 0) {
-            System.out.println("[GameSession.update] frame=" + frameCount);
-        }
-
         // 게임 상태 업데이트
-        double deltaTime = FRAME_TIME / 1000.0;
-        state.update(deltaTime);
+        state.update(FRAME_TIME / 1000.0);
 
-        // 장애물 생성 시도
-        spawner.trySpawn(state.getTrackController());
+        // 장애물 스폰
+        state.getSpawner().trySpawn(state.getTrackController());
 
-        // 상태 브로드캐스트
+        // 상태 브로드캐스트 (30hz)
         if (frameCount % BROADCAST_INTERVAL == 0) {
             broadcastGameState();
         }
@@ -111,7 +103,7 @@ public class GameSession {
         
         TrackController track = state.getTrackController();
         
-        // 기본 정보 (TrackController에서 가져옴)
+        // 기본 정보
         msg.setRoomId(roomId);
         msg.setDistance(track.getDistance());
         msg.setScore(track.getScore());
@@ -133,17 +125,22 @@ public class GameSession {
         // 활성 스킬
         msg.setActiveSkills(state.getActiveSkills());
         
+        // 게임 모드 상태 텍스트
+        msg.setGameMode(state.getGameModeName());
+        msg.setStageInfo(state.getCurrentStageInfo());
+        
         room.broadcast(MessageType.GAME_STATE, msg);
         
         // 10초마다 한 번씩만 상태 로그
         if (frameCount % 600 == 0) {
             System.out.println(String.format(
-                "📊 [%ds] 거리: %.0fm | 점수: %d | 장애물: %d개 | Y: %.0f",
+                "📊 [%ds] 거리: %.0fm | 점수: %d | 장애물: %d개 | Y: %.0f | Mode: %s",
                 state.getPlayTime(),
                 track.getDistance(),
                 track.getScore(),
                 msg.getObstacles().size(),
-                state.getPlayerY()
+                state.getPlayerY(),
+                state.getCurrentStageInfo()
             ));
         }
     }
@@ -154,29 +151,22 @@ public class GameSession {
     private void finishGame() {
         TrackController track = state.getTrackController();
         
-        long actualPlayTime = System.currentTimeMillis() - gameStartTime;
-        
         System.out.println("========================================");
         System.out.println("🏁 게임 종료: " + roomId);
         System.out.println("   최종 점수: " + track.getScore());
-        System.out.println("   플레이 시간: " + (actualPlayTime / 1000) + "초");
+        System.out.println("   플레이 시간: " + state.getPlayTime() + "초");
+        System.out.println("   모드: " + room.getGameMode().getDisplayName());
         System.out.println("========================================");
         
         isRunning = false;
         stopGame();
 
-        // GameResultMessage 전송 (이것만!)
+        // GameResultMessage 생성 및 전송
         sendGameResult();
 
-        // 방 상태만 변경 (브로드캐스트 하지 않음!)
-        // 클라이언트가 BACK_TO_LOBBY 요청할 때 RoomInfo를 받음
+        // 방 상태 변경
         room.setStatus(Room.STATUS_FINISHED);
-        
-        // ⭐ 중요: broadcastRoomInfo() 제거!
-        // 이걸 호출하면 GameResult보다 먼저 처리되어 대기실로 가버림
-        // room.broadcastRoomInfo(Room.STATUS_FINISHED);  // 삭제!
-        
-        System.out.println("✅ GameResult만 전송 완료 (RoomInfo 브로드캐스트 안 함)");
+        room.broadcastRoomInfo(Room.STATUS_FINISHED);
     }
 
     /**
@@ -204,17 +194,13 @@ public class GameSession {
         // 게임 결과 통계
         result.setFinalDistance(track.getDistance());
         result.setTotalScore(track.getScore());
-        
-        // 실제 플레이 시간 계산
-        long playTimeMs = System.currentTimeMillis() - gameStartTime;
-        result.setPlayTime(playTimeMs);
-        System.out.println("   플레이 시간(ms): " + playTimeMs);
+        result.setPlayTime(System.currentTimeMillis() - gameStartTime);
         
         // 장애물 통계
         result.setObstaclesDestroyed(track.getObstaclesDestroyed());
         result.setObstaclesAvoided(track.getObstaclesAvoided());
         
-        // 개별 기여도
+        // 개별 기여도 (기사가 파괴, 말이 회피)
         result.setPlayer1Destroyed(track.getObstaclesDestroyed());
         result.setPlayer2Avoided(track.getObstaclesAvoided());
         

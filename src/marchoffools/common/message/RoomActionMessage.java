@@ -1,5 +1,6 @@
 package marchoffools.common.message;
 
+import marchoffools.common.model.GameModeType;
 import marchoffools.common.protocol.Message;
 
 public class RoomActionMessage extends Message {
@@ -29,8 +30,9 @@ public class RoomActionMessage extends Message {
     private int action;           // 액션 타입
     private String roomId;        // 방 ID (입장/퇴장 시)
     private String playerName;    // 플레이어 이름 (연결 시)
-    private int roleType;    // 캐릭터 타입 (선택 시)
+    private int roleType;         // 캐릭터 타입 (선택 시)
     private boolean ready;        // 준비 상태
+    private GameModeType gameMode = GameModeType.INFINITE; // 게임 모드 (시작 시)
     
     public RoomActionMessage() {
         super();
@@ -82,6 +84,14 @@ public class RoomActionMessage extends Message {
         this.ready = ready;
     }
     
+    public GameModeType getGameMode() {
+        return gameMode;
+    }
+    
+    public void setGameMode(GameModeType gameMode) {
+        this.gameMode = gameMode;
+    }
+    
     @Override
     public String toString() {
         return "RoomActionMessage{action=" + action + 
@@ -89,6 +99,7 @@ public class RoomActionMessage extends Message {
                ", roomId=" + roomId + 
                ", playerName=" + playerName +
                ", roleType=" + roleType + 
-               ", ready=" + ready + "}";
+               ", ready=" + ready +
+               ", gameMode=" + gameMode + "}";
     }
 }

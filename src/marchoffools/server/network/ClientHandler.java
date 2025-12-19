@@ -12,7 +12,8 @@ import marchoffools.server.game.GameSession;
 import marchoffools.server.game.Room;
 import marchoffools.server.game.RoomManager;
 import marchoffools.server.ui.ServerLogger;
-import marchoffools.common.message.*; 
+import marchoffools.common.message.*;
+import marchoffools.common.model.GameModeType; 
 
 public class ClientHandler extends Thread {
     
@@ -441,6 +442,7 @@ public class ClientHandler extends Thread {
     private void handleStartGame(RoomActionMessage msg) {
         logger.info("게임 시작 요청: " + playerName);
         
+        // 1. 방에 있는지 확인
         if (currentRoomId == null) {
             sendResponse(ResponseMessage.error(
                 ResponseMessage.NOT_IN_ROOM,
@@ -460,6 +462,7 @@ public class ClientHandler extends Thread {
             return;
         }
         
+        // 2. 방장인지 확인
         if (!playerId.equals(room.getHostId())) {
             logger.warn("게임 시작 거부: " + playerName + " (방장 아님)");
             sendResponse(ResponseMessage.error(
@@ -469,6 +472,7 @@ public class ClientHandler extends Thread {
             return;
         }
         
+        // 3. 게임 시작 가능 여부 확인
         if (!room.canStartGame()) {
             logger.warn("게임 시작 불가: 플레이어 수 " + room.getPlayerCount());
             sendResponse(ResponseMessage.error(
@@ -478,12 +482,21 @@ public class ClientHandler extends Thread {
             return;
         }
         
+        // 4. 게임 모드 설정 (방장이 선택)
+        GameModeType selectedMode = msg.getGameMode();
+        if (selectedMode != null) {
+            room.setGameMode(selectedMode);
+            System.out.println("✓ 게임 모드 설정: " + selectedMode.getDisplayName());
+        } else {
+            System.out.println("✓ 기본 모드 사용: " + room.getGameMode().getDisplayName());
+        }
+        
+        // 5. 게임 시작
         logger.info("========================================");
         logger.info("🎮 게임 시작: 방 " + currentRoomId);
         logger.game(currentRoomId, "🎮 게임 시작!");
         
         room.startGame();
-        
         server.notifyGameStarted(currentRoomId);
         server.notifyRoomUpdated(room);
         

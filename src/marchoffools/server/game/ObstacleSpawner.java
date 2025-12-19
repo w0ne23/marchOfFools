@@ -1,61 +1,83 @@
 package marchoffools.server.game;
 
 import java.util.Random;
-import java.util.UUID;
 
-import marchoffools.common.message.GameStateMessage.ObstacleData;
-import marchoffools.common.model.GameEntity;
-import marchoffools.common.model.ObstacleType;
+import marchoffools.common.model.GameMode;
+import marchoffools.server.game.spawn.ObstacleSpawnStrategy;
+import marchoffools.server.game.spawn.MonsterSpawnStrategy;
+import marchoffools.server.game.spawn.SpawnConfig;
 
-/**
- * 장애물 생성 시스템
- */
 public class ObstacleSpawner {
-
-    private static final long SPAWN_INTERVAL = 1000; // 1초마다
-    private static final double SPAWN_X = 1366; // 화면 오른쪽 끝
-
-    private static final Random random = new Random();
+	
+    private ObstacleSpawnStrategy obstacleStrategy;
+    private MonsterSpawnStrategy monsterStrategy;
+    
+    private static final long MIN_SPAWN_GAP = 100;
+    private Random random = new Random();
     
     private long lastSpawnTime = 0;
-
-    /**
-     * 장애물 생성 시도
-     */
+    
+    public ObstacleSpawner() {
+        this.obstacleStrategy = new ObstacleSpawnStrategy(1000, 1500, 1, 1);
+        this.monsterStrategy = new MonsterSpawnStrategy(1000, 1500, 1, 1);
+    }
+    
+    public void updateStrategies(GameMode gameMode) {
+        SpawnConfig config = gameMode.getSpawnConfig();
+        
+        this.obstacleStrategy = new ObstacleSpawnStrategy(
+            config.getObstacleMinInterval(),
+            config.getObstacleMaxInterval(),
+            config.getGroundWeight(),
+            config.getAirWeight()
+        );
+        
+        this.monsterStrategy = new MonsterSpawnStrategy(
+            config.getMonsterMinInterval(),
+            config.getMonsterMaxInterval(),
+            config.getSoftWeight(),
+            config.getHardWeight()
+        );
+        
+        System.out.println("[Spawner] Strategies updated: " + config);
+    }
+    
+    public void startSpawn() {
+        long delay = 800;
+        boolean r = random.nextBoolean();
+        
+        obstacleStrategy.startSpawn(r ? 0 : delay);
+        monsterStrategy.startSpawn(r ? delay : 0);
+        
+        System.out.println("[Spawner] Spawn started - " + (r ? "obs" : "mon") + " first");
+    }
+    
     public void trySpawn(TrackController track) {
         long now = System.currentTimeMillis();
         
-        if (now - lastSpawnTime >= SPAWN_INTERVAL) {
-            ObstacleData obstacle = createObstacle();
-            track.addObstacle(obstacle);
+        // 마지막 스폰 후 최소 시간 경과 확인
+        if (now - lastSpawnTime < MIN_SPAWN_GAP) {
+            return;
+        }
+        
+        boolean spawned = false;
+        
+        if (obstacleStrategy.shouldSpawn(now)) {
+            track.addObstacle(obstacleStrategy.createObstacle());
+            spawned = true;
+        } else if (monsterStrategy.shouldSpawn(now)) {
+            track.addObstacle(monsterStrategy.createObstacle());
+            spawned = true;
+        }
+        
+        if (spawned) {
             lastSpawnTime = now;
-            
-            System.out.println("[Spawner] Spawned: type=" + obstacle.getType() + " at x=" + obstacle.getX());
         }
     }
-
-    /**
-     * 장애물 생성
-     */
-    private ObstacleData createObstacle() {
-        // 임시 로직: 일정한 간격으로 랜덤 타입 장애물 생성....
-        ObstacleType type = ObstacleType.getById(random.nextInt(4));
-        GameEntity entity = GameEntity.getByType(type);
-
-        String id = UUID.randomUUID().toString();
-        ObstacleData data = new ObstacleData(id, SPAWN_X, type.getY(), type.getId());
-        
-        System.out.println("[Spawner] Created " + entity.getName() + 
-                         " (Type: " + type.getDisplayName() + 
-                         ", Size: " + entity.getWidth() + "x" + entity.getHeight() + ")");
-        
-        return data;
-    }
     
-    /**
-     * 스포너 상태 초기화 (새 게임 시작 시)
-     */
     public void reset() {
+        obstacleStrategy.reset();
+        monsterStrategy.reset();
         lastSpawnTime = 0;
         System.out.println("[Spawner] Reset complete");
     }

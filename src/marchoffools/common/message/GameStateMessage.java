@@ -28,6 +28,10 @@ public class GameStateMessage extends Message {
     // ========== 장애물 목록 ==========
     private List<ObstacleData> obstacles;
     
+    // ========== 게임 모드 상태 (추가) ==========
+    private String gameMode;
+    private String stageInfo;
+    
     public GameStateMessage() {
         super();
         this.obstacles = new ArrayList<>();
@@ -126,9 +130,26 @@ public class GameStateMessage extends Message {
         this.obstacles = obstacles;
     }
     
+    public String getGameMode() {
+		return gameMode;
+	}
+
+	public void setGameMode(String gameMode) {
+		this.gameMode = gameMode;
+	}
+
+	public String getStageInfo() {
+		return stageInfo;
+	}
+
+	public void setStageInfo(String stageInfo) {
+		this.stageInfo = stageInfo;
+	}
+
+	
     // ========== 장애물 데이터 내부 클래스 ==========
     
-    public static class ObstacleData implements java.io.Serializable {
+	public static class ObstacleData implements java.io.Serializable {
         private static final long serialVersionUID = 1L;
         
         private String id;
