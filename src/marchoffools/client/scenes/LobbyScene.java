@@ -33,6 +33,7 @@ import javax.swing.text.html.HTMLDocument;
 import javax.swing.text.html.HTMLEditorKit;
 
 import marchoffools.client.core.Assets;
+import marchoffools.client.core.ResourceManager;
 import marchoffools.client.core.Scene;
 import marchoffools.client.network.NetworkManager;
 import marchoffools.client.network.NetworkListener;
@@ -660,10 +661,10 @@ public class LobbyScene extends Scene implements NetworkListener {
         imageLabel.setOpaque(true);
         imageLabel.setBackground(LIGHT_GRAY); // 이미지가 없을 때를 대비한 배경색
 
-        ImageIcon icon = Assets.Characters.get(imageKey);
+        ImageIcon icon = ResourceManager.getScaledIcon(imageKey, 80, 80);
         if (icon != null) {
             imageLabel.setIcon(icon);
-            imageLabel.setText(""); 
+            imageLabel.setText("");
         } else {
             imageLabel.setText("No IMG");
         }
