@@ -151,17 +151,33 @@ public class LogPanel extends JPanel {
     
     private void saveLog() {
         JFileChooser chooser = new JFileChooser();
+        
+        chooser.setCurrentDirectory(new File(System.getProperty("user.home")));
+        
         String defaultName = "server_log_" + 
             LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".txt";
         chooser.setSelectedFile(new File(defaultName));
         
         if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+        	File saveFile = chooser.getSelectedFile();
+            
+            System.out.println("저장 시도 경로: " + saveFile.getAbsolutePath());
+            
             try (PrintWriter writer = new PrintWriter(chooser.getSelectedFile(), "UTF-8")) {
                 writer.print(logArea.getText());
-                JOptionPane.showMessageDialog(this, 
-                    "로그가 저장되었습니다.\n" + chooser.getSelectedFile().getAbsolutePath(),
-                    "저장 완료", 
-                    JOptionPane.INFORMATION_MESSAGE);
+                writer.flush();
+                
+                if (saveFile.exists()) {
+                    JOptionPane.showMessageDialog(this, 
+                        "로그가 저장되었습니다.\n" + saveFile.getAbsolutePath(),
+                        "저장 완료", 
+                        JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(this, 
+                        "파일 저장에 실패했습니다.", 
+                        "오류", 
+                        JOptionPane.ERROR_MESSAGE);
+                }
             } catch (IOException e) {
                 JOptionPane.showMessageDialog(this, 
                     "저장 실패: " + e.getMessage(), 
