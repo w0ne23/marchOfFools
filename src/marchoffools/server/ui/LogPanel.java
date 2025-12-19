@@ -21,6 +21,20 @@ public class LogPanel extends JPanel {
     private static final int MAX_LOG_LINES = 1000;
     private int lineCount = 0;
     
+    private java.util.List<LogEntry> allLogs = new java.util.ArrayList<>();
+    
+    private static class LogEntry {
+        String timestamp;
+        String level;
+        String message;
+        
+        LogEntry(String timestamp, String level, String message) {
+            this.timestamp = timestamp;
+            this.level = level;
+            this.message = message;
+        }
+    }
+    
     public LogPanel(String title) {
         setLayout(new BorderLayout());
         setBorder(BorderFactory.createTitledBorder("📝 " + title));
@@ -49,15 +63,17 @@ public class LogPanel extends JPanel {
         filterCombo = new JComboBox<>(new String[]{"전체", "INFO", "WARN", "ERROR", "DEBUG"});
         filterCombo.addActionListener(e -> {
             currentFilter = (String) filterCombo.getSelectedItem();
+            refreshLogDisplay();
         });
         
         // 버튼들
         JButton saveBtn = new JButton("💾 저장");
         saveBtn.addActionListener(e -> saveLog());
         
-        JButton clearBtn = new JButton("❌ 지우기");
+        JButton clearBtn = new JButton("🗑 지우기");
         clearBtn.addActionListener(e -> {
             logArea.setText("");
+            allLogs.clear();
             lineCount = 0;
         });
         
@@ -76,35 +92,48 @@ public class LogPanel extends JPanel {
     }
     
     public void appendLog(String timestamp, String level, String message) {
-        // 필터 적용
-        if (!currentFilter.equals("전체") && !level.equals(currentFilter)) {
-            return;
+    	// 모든 로그 저장
+    	LogEntry entry = new LogEntry(timestamp, level, message);
+        allLogs.add(entry);
+        
+        // 로그 수 제한
+        if (allLogs.size() > MAX_LOG_LINES) {
+            allLogs.remove(0);
         }
         
-        // 레벨별 prefix
+        // 필터 적용
+        if (currentFilter.equals("전체") || level.equals(currentFilter)) {
+            appendToDisplay(timestamp, level, message);
+        }
+    }
+    
+    private void appendToDisplay(String timestamp, String level, String message) {
         String prefix = switch (level) {
-            case "ERROR" -> "❌ [ERROR]";
-            case "WARN"  -> "⚠️ [WARN]";
-            case "INFO"  -> "💬️ [INFO]";
-            case "DEBUG" -> "🔧 [DEBUG]";
+	        case "ERROR" -> "❌ [ERROR]";
+	        case "WARN"  -> "⚠️ [WARN]";
+	        case "INFO"  -> "💬️ [INFO]";
+	        case "DEBUG" -> "🔧 [DEBUG]";
             default      -> "   [" + level + "]";
         };
         
         String formatted = String.format("[%s] %s %s%n", timestamp, prefix, message);
-        
-        // 로그 줄 수 제한
-        if (lineCount >= MAX_LOG_LINES) {
-            trimLog();
-        }
-        
         logArea.append(formatted);
-        lineCount++;
         
-        // 자동 스크롤 (마지막 줄이 보이는 경우에만)
+        // 자동 스크롤
         JScrollBar scrollBar = ((JScrollPane) logArea.getParent().getParent()).getVerticalScrollBar();
         boolean atBottom = scrollBar.getValue() + scrollBar.getVisibleAmount() >= scrollBar.getMaximum() - 50;
         if (atBottom) {
             logArea.setCaretPosition(logArea.getDocument().getLength());
+        }
+    }
+    
+    private void refreshLogDisplay() {
+        logArea.setText("");
+        
+        for (LogEntry entry : allLogs) {
+            if (currentFilter.equals("전체") || entry.level.equals(currentFilter)) {
+                appendToDisplay(entry.timestamp, entry.level, entry.message);
+            }
         }
     }
     
