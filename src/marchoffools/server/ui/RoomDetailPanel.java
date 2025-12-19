@@ -238,6 +238,7 @@ public class RoomDetailPanel extends JPanel {
         statusLabel.setText("");
         playersPanel.removeAll();
         playersPanel.revalidate();
+        playersPanel.repaint();
         chatLog.setText("");
         gameLog.setText("");
         kickRoomBtn.setEnabled(false);
