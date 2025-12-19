@@ -4,8 +4,11 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import marchoffools.common.message.RoomListMessage.RoomSummary;
 import marchoffools.common.model.PlayerInfo;
+import marchoffools.server.ui.ServerLogger;
 
 public class RoomManager {
+    
+    private static final ServerLogger logger = ServerLogger.getInstance();
     
     private Map<String, Room> rooms;
     private Random random;
@@ -22,8 +25,8 @@ public class RoomManager {
         Room room = new Room(roomId, hostId);
         rooms.put(roomId, room);
         
-        System.out.println("방 생성: " + roomId + " (방장: " + hostName + ")");
-        System.out.println("현재 방 개수: " + rooms.size());
+        logger.info("방 생성: " + roomId + " (방장: " + hostName + ")");
+        logger.info("현재 방 개수: " + rooms.size());
         
         return room;
     }
@@ -35,17 +38,16 @@ public class RoomManager {
     
     // 빠른 매칭 - 입장 가능한 방 찾기
     public Room findAvailableRoom() {
-    	
-    	List<Room> snapshot = new ArrayList<>(rooms.values());
-    	
-    	for (Room room : snapshot) {
+        List<Room> snapshot = new ArrayList<>(rooms.values());
+        
+        for (Room room : snapshot) {
             if (!room.isFull() && !room.isPlaying()) {
-                System.out.println("매칭된 방: " + room.getRoomId());
+                logger.debug("매칭된 방: " + room.getRoomId());
                 return room;
             }
         }
         
-        System.out.println("사용 가능한 방 없음");
+        logger.debug("사용 가능한 방 없음");
         return null;
     }
     
@@ -61,14 +63,14 @@ public class RoomManager {
         }
         
         if (removed != null) {
-            System.out.println("방 삭제: " + roomId);
-            System.out.println("현재 방 개수: " + rooms.size());
+            logger.info("방 삭제: " + roomId);
+            logger.info("현재 방 개수: " + rooms.size());
         }
     }
     
     // 플레이어가 속한 방 찾기
     public Room findRoomByPlayer(String playerId) {
-    	List<Room> snapshot = new ArrayList<>(rooms.values());
+        List<Room> snapshot = new ArrayList<>(rooms.values());
         
         for (Room room : snapshot) {
             if (room.hasPlayer(playerId)) {
@@ -96,7 +98,7 @@ public class RoomManager {
     
     // 전체 플레이어 수
     public int getTotalPlayerCount() {
-    	List<Room> snapshot = new ArrayList<>(rooms.values());
+        List<Room> snapshot = new ArrayList<>(rooms.values());
         
         int count = 0;
         for (Room room : snapshot) {
@@ -105,8 +107,24 @@ public class RoomManager {
         return count;
     }
     
+    // 게임 중인 방 수
+    public int getPlayingRoomCount() {
+        int count = 0;
+        for (Room room : rooms.values()) {
+            if (room.isPlaying()) {
+                count++;
+            }
+        }
+        return count;
+    }
+    
+    // 전체 방 목록 (UI용)
+    public Collection<Room> getAllRooms() {
+        return new ArrayList<>(rooms.values());
+    }
+    
     public List<RoomSummary> getRoomList() {
-    	List<Room> snapshot = new ArrayList<>(rooms.values());
+        List<Room> snapshot = new ArrayList<>(rooms.values());
         List<RoomSummary> list = new ArrayList<>();
         
         for (Room room : snapshot) {

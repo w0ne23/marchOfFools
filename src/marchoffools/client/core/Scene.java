@@ -19,11 +19,18 @@ public abstract class Scene extends JPanel {
 	protected Image img;
 	
 	
-	public Scene(String icon) {
-		this.icon = new ImageIcon(icon);
-		img = this.icon.getImage();
-	    if (img == null || img.getWidth(null) == -1) {
-	        System.err.println("Warning: Failed to load image: " + icon);
+	public Scene(String iconPath) {
+		if (iconPath != null) {
+	        java.net.URL url = getClass().getResource(iconPath);
+	        if (url != null) {
+	            this.icon = new ImageIcon(url);
+	            img = this.icon.getImage();
+	        } else {
+	            System.err.println("Warning: Failed to load image: " + iconPath);
+	            img = null;
+	        }
+	    } else {
+	        img = null;
 	    }
 		
 		setLayout(null);

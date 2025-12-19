@@ -1,7 +1,7 @@
 package marchoffools.client.scenes;
 
-import marchoffools.client.core.AudioManager;
 import marchoffools.client.core.Config;
+import marchoffools.client.core.ResourceManager;
 import marchoffools.client.core.Scene;
 import marchoffools.client.ui.Button;
 
@@ -233,7 +233,7 @@ public class SettingScene extends Scene {
         // 배경음악 (BGM)
         panel.add(createVolumeControl("배경음악 (BGM)", Config.BGM_VOLUME, val -> {
             Config.BGM_VOLUME = val;
-            AudioManager.getInstance().setBgmVolume(val);
+            ResourceManager.setBGMVolume(val);
         }), gbc);
 
         // 효과음 (SFX)

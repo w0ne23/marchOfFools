@@ -1,16 +1,20 @@
 package marchoffools.server;
 
-import marchoffools.common.config.ServerConfig;
-import marchoffools.server.network.GameServer;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+
+import marchoffools.server.ui.ServerGUI;
 
 public class ServerMain {
+    
     public static void main(String[] args) {
-        int port = ServerConfig.getServerPort();
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception e) {}
         
-        System.out.println("=================================");
-        System.out.println("바보들의 행진 게임 서버");
-        System.out.println("=================================");
-        
-        new GameServer(port);
+        SwingUtilities.invokeLater(() -> {
+            ServerGUI gui = new ServerGUI();
+            gui.setVisible(true);
+        });
     }
 }

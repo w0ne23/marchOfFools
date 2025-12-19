@@ -1,10 +1,10 @@
 package marchoffools.client;
 
-import marchoffools.client.core.Assets;
+import marchoffools.client.core.ResourceManager;
 
 public class ClientMain {
     public static void main(String[] args) {
-    	Assets.Characters.load();
+    	ResourceManager.loadAllResources();
     	
         new Frame();
     }
