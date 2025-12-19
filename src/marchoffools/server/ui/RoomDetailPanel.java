@@ -78,6 +78,10 @@ public class RoomDetailPanel extends JPanel {
         clearLogBtn.addActionListener(e -> {
             chatLog.setText("");
             gameLog.setText("");
+            
+            if (currentRoomId != null) {
+                ServerLogger.getInstance().clearRoomLogs(currentRoomId);
+            }
         });
     }
     
