@@ -208,6 +208,20 @@ public class NetworkManager {
         System.out.println("Players: " + msg.getPlayers().size());
         System.out.println("Can Start: " + msg.isCanStart());
         
+        // 강제 퇴장 처리
+        if (msg.getStatus() == RoomInfoMessage.ROOM_KICKED) {
+            SwingUtilities.invokeLater(() -> {
+                JOptionPane.showMessageDialog(
+                    frame,
+                    "방이 서버에 의해 강제 종료되었습니다.",
+                    "강제 퇴장",
+                    JOptionPane.WARNING_MESSAGE
+                );
+                frame.switchSceneWithoutHistory(new marchoffools.client.scenes.TitleScene());
+            });
+            return;
+        }
+        
         // 게임 시작 상태 체크
         if (msg.getStatus() == Room.STATUS_PLAYING) {
             handleGameStartFromRoomInfo(msg);

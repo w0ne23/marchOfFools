@@ -20,6 +20,7 @@ public class RoomInfoMessage extends Message {
     public static final int READY_CHANGED = 7;
     public static final int CHARACTER_CHANGED = 8;
     public static final int GAME_STARTING = 9;
+    public static final int ROOM_KICKED = 10;
     
     private int status;               // 방 상태
     private String roomId;            // 방 ID
