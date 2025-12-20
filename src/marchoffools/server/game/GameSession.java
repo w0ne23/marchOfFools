@@ -9,6 +9,7 @@ import marchoffools.common.message.GameStateMessage;
 import marchoffools.common.model.GameModeType;
 import marchoffools.common.model.PlayerInfo;
 import marchoffools.common.protocol.MessageType;
+import marchoffools.server.ui.ServerLogger;
 
 /**
  * 한 판의 게임 진행을 관리하는 클래스
@@ -29,6 +30,9 @@ public class GameSession {
     private long gameStartTime = 0; // 게임 시작 시각 (밀리초)
 
     private ScheduledExecutorService gameLoop;
+    
+    private static final ServerLogger logger = ServerLogger.getInstance();
+    private String lastStageInfo = "";
 
     public GameSession(Room room, GameModeType gameModeType) {
         this.room = room;
@@ -47,6 +51,10 @@ public class GameSession {
         state.reset();
         gameStartTime = System.currentTimeMillis();
         state.getSpawner().startSpawn();
+        
+        lastStageInfo = state.getCurrentStageInfo();
+        logger.game(roomId, "게임 시작 - 모드: " + room.getGameMode().getDisplayName() + ", " + lastStageInfo);
+        
         System.out.println("✅ Game started at: " + gameStartTime);
         
         System.out.println("✅ Creating game loop...");
@@ -73,10 +81,19 @@ public class GameSession {
             isRunning = false;
             return;
         }
+        
+        String prevStageInfo = state.getCurrentStageInfo();
 
         // 게임 상태 업데이트
         state.update(FRAME_TIME / 1000.0);
 
+        // 스테이지 변경 감지 및 로깅
+        String currentStageInfo = state.getCurrentStageInfo();
+        if (!prevStageInfo.equals(currentStageInfo)) {
+            logger.game(roomId, "스테이지 변경: " + prevStageInfo + " → " + currentStageInfo);
+            lastStageInfo = currentStageInfo;
+        }
+        
         // 장애물 스폰
         state.getSpawner().trySpawn(state.getTrackController());
 
@@ -150,6 +167,8 @@ public class GameSession {
      */
     private void finishGame() {
         TrackController track = state.getTrackController();
+        
+        logger.game(roomId, "게임 종료 - 점수: " + track.getScore() + ", 시간: " + state.getPlayTime() + "초");
         
         System.out.println("========================================");
         System.out.println("🏁 게임 종료: " + roomId);

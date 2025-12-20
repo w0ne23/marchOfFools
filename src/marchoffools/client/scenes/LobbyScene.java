@@ -423,6 +423,14 @@ public class LobbyScene extends Scene implements NetworkListener {
     private void selectGameMode(GameModeType mode) {
         this.selectedGameMode = mode;
         updateGameModeButtons();
+        
+        NetworkManager nm = getNetworkManager();
+        if (nm != null) {
+            RoomActionMessage msg = new RoomActionMessage(nm.getPlayerId(), RoomActionMessage.SELECT_MODE);
+            msg.setGameMode(mode);
+            nm.sendMessage(MessageType.ROOM_ACTION, msg);
+        }
+        
         System.out.println("게임 모드 선택: " + mode.getDisplayName());
     }
 
@@ -823,6 +831,11 @@ public class LobbyScene extends Scene implements NetworkListener {
         this.players = msg.getPlayers();
         this.canStart = msg.isCanStart();
         
+        if (msg.getGameMode() != null) {
+            this.selectedGameMode = msg.getGameMode();
+            updateGameModeButtons();
+        }
+        
         refreshUI();
     }
     
@@ -904,6 +917,7 @@ public class LobbyScene extends Scene implements NetworkListener {
             bStart.setVisible(isHost);
             bStart.setEnabled(canStart);
             
+            // 게임 모드 버튼 - 방장만 활성화
             if (bModeInfinite != null && bModeStage != null) {
                 bModeInfinite.setEnabled(isHost);
                 bModeStage.setEnabled(isHost);

@@ -53,7 +53,6 @@ public class ObstacleSpawner {
     }
     
     public void trySpawn(TrackController track) {
-    	if (true) return;
         long now = System.currentTimeMillis();
         
         // 마지막 스폰 후 최소 시간 경과 확인

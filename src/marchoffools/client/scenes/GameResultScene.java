@@ -3,8 +3,10 @@ package marchoffools.client.scenes;
 import marchoffools.client.core.Scene;
 import marchoffools.client.data.ScoreManager;
 import marchoffools.client.data.ScoreRecord;
+import marchoffools.client.network.NetworkListener;
 import marchoffools.client.network.NetworkManager;
 import marchoffools.client.ui.Button;
+import marchoffools.common.message.RoomInfoMessage;
 import marchoffools.common.message.GameResultMessage;
 import marchoffools.common.message.RoomActionMessage;
 import marchoffools.common.protocol.MessageType;
@@ -26,7 +28,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 
-public class GameResultScene extends Scene {
+public class GameResultScene extends Scene implements NetworkListener {
 
     private static final long serialVersionUID = 1L;
 
@@ -96,6 +98,33 @@ public class GameResultScene extends Scene {
         createMainResultPanel();
         
         setFocusable(false);
+        
+        NetworkManager nm = getNetworkManager();
+        if (nm != null) {
+            nm.setListener(this);
+        }
+    }
+    
+    @Override
+    public void onExit() {
+    	NetworkManager nm = getNetworkManager();
+        if (nm != null) {
+            nm.removeListener(this);
+        }
+        super.onExit();
+    }
+    
+    @Override
+    public void onRoomInfo(RoomInfoMessage msg) {
+    	if (msg.getStatus() == 0) {
+            System.out.println("서버에서 대기실 복귀 신호 수신");
+            
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                clearHistory();
+                LobbyScene lobbyScene = new LobbyScene();
+                switchToWithoutHistory(lobbyScene);
+            });
+        }
     }
     
     /**
@@ -354,7 +383,6 @@ public class GameResultScene extends Scene {
         
         NetworkManager nm = getNetworkManager();
         if (nm != null && nm.isConnected()) {
-            // 서버에 BACK_TO_LOBBY 요청 전송
             RoomActionMessage msg = new RoomActionMessage(
                 nm.getPlayerId(),
                 RoomActionMessage.BACK_TO_LOBBY
@@ -362,10 +390,6 @@ public class GameResultScene extends Scene {
             nm.sendMessage(MessageType.ROOM_ACTION, msg);
             System.out.println("서버에 BACK_TO_LOBBY 요청 전송");
             
-            // ⭐ 히스토리 정리 후 LobbyScene으로 전환
-            clearHistory();
-            LobbyScene lobbyScene = new LobbyScene();
-            switchToWithoutHistory(lobbyScene);
         } else {
             System.err.println("서버 연결이 없습니다. 타이틀로 이동합니다.");
             clearHistory();

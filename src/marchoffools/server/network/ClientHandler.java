@@ -139,6 +139,10 @@ public class ClientHandler extends Thread {
                 handleBackToLobby(msg);
                 break;
                 
+            case RoomActionMessage.SELECT_MODE:  // ⭐ 추가
+                handleSelectMode(msg);
+                break;
+                
             default:
                 sendResponse(ResponseMessage.error(
                     ResponseMessage.INVALID_INPUT,
@@ -536,6 +540,56 @@ public class ClientHandler extends Thread {
         room.broadcastRoomInfo(RoomInfoMessage.READY_CHANGED);
         
         sendResponse(ResponseMessage.success("대기실로 복귀했습니다"));
+    }
+    
+    private void handleSelectMode(RoomActionMessage msg) {
+        logger.info("게임 모드 변경 요청: " + playerName);
+        
+        if (currentRoomId == null) {
+            sendResponse(ResponseMessage.error(
+                ResponseMessage.NOT_IN_ROOM,
+                "방에 입장해 있지 않습니다"
+            ));
+            return;
+        }
+        
+        RoomManager roomManager = server.getRoomManager();
+        Room room = roomManager.getRoom(currentRoomId);
+        
+        if (room == null) {
+            sendResponse(ResponseMessage.error(
+                ResponseMessage.ROOM_NOT_FOUND,
+                "방을 찾을 수 없습니다"
+            ));
+            return;
+        }
+        
+        // 방장만 모드 변경 가능
+        if (!playerId.equals(room.getHostId())) {
+            sendResponse(ResponseMessage.error(
+                ResponseMessage.NOT_HOST,
+                "방장만 게임 모드를 변경할 수 있습니다"
+            ));
+            return;
+        }
+        
+        // 게임 중에는 변경 불가
+        if (room.isPlaying()) {
+            sendResponse(ResponseMessage.error(
+                ResponseMessage.GAME_ALREADY_STARTED,
+                "게임 중에는 모드를 변경할 수 없습니다"
+            ));
+            return;
+        }
+        
+        GameModeType newMode = msg.getGameMode();
+        room.setGameMode(newMode);
+        logger.info("게임 모드 변경: " + newMode.getDisplayName());
+        logger.game(currentRoomId, "게임 모드 변경: " + newMode.getDisplayName());
+        
+        // 모든 플레이어에게 브로드캐스트
+        room.broadcastRoomInfo(RoomInfoMessage.ROOM_CREATED);  // 또는 적절한 상태값
+        server.notifyRoomUpdated(room);
     }
     
     private void handleGameInput(GameInputMessage msg) {

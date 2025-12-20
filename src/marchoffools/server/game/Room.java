@@ -169,6 +169,7 @@ public class Room {
         msg.setPlayers(new ArrayList<>(players.values()));
         msg.setCanStart(canStartGame());
         msg.setStatus(this.status);
+        msg.setGameMode(this.gameMode);
         
         Packet packet = new Packet(MessageType.ROOM_INFO, msg);
         
