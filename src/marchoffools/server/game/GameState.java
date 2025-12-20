@@ -49,8 +49,16 @@ public class GameState {
         double timeScale = gameMode.getTimeScale();
         double scaledDelta = deltaTime * timeScale;
         
+        String prevStageInfo = gameMode.getCurrentStageInfo();
+        
         // 게임 모드 업데이트
         gameMode.update(deltaTime);
+        
+        String currentStageInfo = gameMode.getCurrentStageInfo();
+        if (!prevStageInfo.equals(currentStageInfo)) {
+            spawner.updateStrategies(gameMode);
+            System.out.println("[GameState] Stage changed: " + prevStageInfo + " → " + currentStageInfo);
+        }
         
         // 게임 상태 업데이트
         charController.updateCharacterState(scaledDelta);
