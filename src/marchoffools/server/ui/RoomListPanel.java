@@ -23,7 +23,7 @@ public class RoomListPanel extends JPanel {
     
     private void initComponents() {
         setLayout(new BorderLayout());
-        setBorder(BorderFactory.createTitledBorder("🏠 방 목록"));
+        setBorder(BorderFactory.createTitledBorder("방 목록"));
         setPreferredSize(new Dimension(200, 0));
         setBackground(new Color(250, 250, 250));
         
@@ -41,7 +41,7 @@ public class RoomListPanel extends JPanel {
         JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 5));
         bottomPanel.setBackground(new Color(250, 250, 250));
         
-        JButton refreshBtn = new JButton("🔄 새로고침");
+        JButton refreshBtn = new JButton("새로고침");
         refreshBtn.addActionListener(e -> parent.refreshRooms());
         bottomPanel.add(refreshBtn);
         
@@ -70,9 +70,9 @@ public class RoomListPanel extends JPanel {
                 }
             }
             if (index >= 0) {
-                roomButtonsPanel.remove(index); // 버튼 제거
+                roomButtonsPanel.remove(index);
                 if (index < roomButtonsPanel.getComponentCount()) {
-                    roomButtonsPanel.remove(index); // strut 제거
+                    roomButtonsPanel.remove(index);
                 }
             }
             roomButtonsPanel.revalidate();
@@ -83,18 +83,18 @@ public class RoomListPanel extends JPanel {
     public void updateRoom(Room room) {
         JButton btn = roomButtons.get(room.getRoomId());
         if (btn != null) {
-            String status = getStatusEmoji(room);
-            String text = String.format("<html><center>%s <b>%s</b><br>%d/2명</center></html>", 
+            String status = getStatusText(room);
+            String text = String.format("<html><center>%s<br><b>%s</b> (%d/2)</center></html>", 
                 status, room.getRoomId(), room.getPlayerCount());
             btn.setText(text);
             
             // 상태별 배경색
             if (room.isPlaying()) {
-                btn.setBackground(new Color(255, 200, 200)); // 빨간색 (게임 중)
+                btn.setBackground(new Color(255, 200, 200));
             } else if (room.isFull()) {
-                btn.setBackground(new Color(200, 255, 200)); // 초록색 (준비 가능)
+                btn.setBackground(new Color(200, 255, 200));
             } else {
-                btn.setBackground(new Color(255, 255, 200)); // 노란색 (대기 중)
+                btn.setBackground(new Color(255, 255, 200));
             }
         }
     }
@@ -109,7 +109,7 @@ public class RoomListPanel extends JPanel {
     
     private JButton createRoomButton(String roomId) {
         JButton btn = new JButton();
-        btn.setText(String.format("<html><center>🟡 <b>%s</b><br>0/2명</center></html>", roomId));
+        btn.setText(String.format("<html><center>[대기]<br><b>%s</b> (0/2)</center></html>", roomId));
         btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
         btn.setAlignmentX(Component.LEFT_ALIGNMENT);
         btn.setBackground(new Color(255, 255, 200));
@@ -137,9 +137,9 @@ public class RoomListPanel extends JPanel {
         }
     }
     
-    private String getStatusEmoji(Room room) {
-        if (room.isPlaying()) return "🔴";
-        if (room.isFull()) return "🟢";
-        return "🟡";
+    private String getStatusText(Room room) {
+        if (room.isPlaying()) return "[게임 중]";
+        if (room.isFull()) return "[준비 가능]";
+        return "[대기]";
     }
 }

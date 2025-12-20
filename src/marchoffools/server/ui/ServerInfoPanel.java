@@ -31,8 +31,9 @@ public class ServerInfoPanel extends JPanel {
     
     private void initComponents() {
         // 상태 라벨
-        statusLabel = new JLabel("🔴 중지됨");
+        statusLabel = new JLabel("[중지됨]");
         statusLabel.setFont(new Font("맑은 고딕", Font.BOLD, 15));
+        statusLabel.setForeground(new Color(192, 0, 0));
         
         // IP 라벨
         try {
@@ -43,7 +44,7 @@ public class ServerInfoPanel extends JPanel {
         }
         
         // 통계 라벨
-        statsLabel = new JLabel("📊 방: 0개 | 접속자: 0명 | 게임 중: 0개");
+        statsLabel = new JLabel("방: 0개 | 접속자: 0명 | 게임 중: 0개");
         
         // 포트 입력
         int defaultPort = ServerConfig.getServerPort();
@@ -78,7 +79,7 @@ public class ServerInfoPanel extends JPanel {
         ));
         setBackground(new Color(245, 245, 245));
         
-        add(new JLabel("💻 서버"));
+        add(new JLabel("[서버]"));
         add(statusLabel);
         add(createSeparator());
         add(ipLabel);
@@ -101,13 +102,13 @@ public class ServerInfoPanel extends JPanel {
     
     public void setServerStatus(boolean running, int port) {
         if (running) {
-            statusLabel.setText("🟢 실행 중 (:" + port + ")");
+            statusLabel.setText("[실행 중] (:" + port + ")");
             statusLabel.setForeground(new Color(0, 128, 0));
             startBtn.setEnabled(false);
             stopBtn.setEnabled(true);
             portSpinner.setEnabled(false);
         } else {
-            statusLabel.setText("🔴 중지됨");
+            statusLabel.setText("[중지됨]");
             statusLabel.setForeground(new Color(192, 0, 0));
             startBtn.setEnabled(true);
             stopBtn.setEnabled(false);
@@ -117,7 +118,7 @@ public class ServerInfoPanel extends JPanel {
     
     public void updateStats(int roomCount, int playerCount, int gameCount) {
         statsLabel.setText(String.format(
-            "📊 방: %d개 | 접속자: %d명 | 게임 중: %d개",
+            "방: %d개 | 접속자: %d명 | 게임 중: %d개",
             roomCount, playerCount, gameCount
         ));
     }
