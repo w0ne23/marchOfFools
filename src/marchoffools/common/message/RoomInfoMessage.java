@@ -3,6 +3,7 @@ package marchoffools.common.message;
 import java.util.ArrayList;
 import java.util.List;
 import marchoffools.common.model.PlayerInfo;
+import marchoffools.common.model.GameModeType;
 import marchoffools.common.protocol.Message;
 
 public class RoomInfoMessage extends Message {
@@ -27,6 +28,7 @@ public class RoomInfoMessage extends Message {
     private String hostId;            // 방장 ID
     private List<PlayerInfo> players; // 플레이어 목록
     private boolean canStart;         // 게임 시작 가능 여부
+    private GameModeType gameMode;
     
     public RoomInfoMessage() {
         super();
@@ -81,11 +83,20 @@ public class RoomInfoMessage extends Message {
         this.canStart = canStart;
     }
     
+    public GameModeType getGameMode() {
+        return gameMode;
+    }
+    
+    public void setGameMode(GameModeType gameMode) {
+        this.gameMode = gameMode;
+    }
+    
     @Override
     public String toString() {
         return "RoomInfoMessage{status=" + status + 
                ", roomId=" + roomId + 
                ", players=" + players.size() + 
-               ", canStart=" + canStart + "}";
+               ", canStart=" + canStart + "}" + 
+               ", gameMode=" + gameMode + "}";
     }
 }

@@ -1,6 +1,7 @@
 package marchoffools.server.game;
 
 import java.util.*;
+import marchoffools.common.model.GameModeType;
 import marchoffools.common.model.PlayerInfo;
 import marchoffools.common.message.RoomActionMessage;
 import marchoffools.common.message.RoomInfoMessage;
@@ -17,8 +18,8 @@ public class Room {
     
     private String roomId;
     private String hostId;
-    private Map<String, PlayerInfo> players;  // playerId -> PlayerInfo
-	private Map<String, ClientHandler> handlers;  // playerId -> ClientHandler
+    private Map<String, PlayerInfo> players;
+	private Map<String, ClientHandler> handlers;
     private boolean playing;
     private boolean full;
     private int status;
@@ -26,6 +27,7 @@ public class Room {
     private static final int MAX_PLAYERS = 2;
     
     private GameSession gameSession;
+    private GameModeType gameMode = GameModeType.INFINITE; // 기본값: 무한 모드
     
     public Room(String roomId, String hostId) {
         this.roomId = roomId;
@@ -167,6 +169,7 @@ public class Room {
         msg.setPlayers(new ArrayList<>(players.values()));
         msg.setCanStart(canStartGame());
         msg.setStatus(this.status);
+        msg.setGameMode(this.gameMode);
         
         Packet packet = new Packet(MessageType.ROOM_INFO, msg);
         
@@ -205,12 +208,13 @@ public class Room {
         
         this.playing = true;
         this.status = STATUS_PLAYING;
-        System.out.println("✅ Room status set to PLAYING");
+        System.out.println("✅ Room " + roomId + " set to Playing (Mode: " + gameMode.getDisplayName() + ")");
         
         broadcastRoomInfo(STATUS_PLAYING);
         System.out.println("✅ RoomInfo broadcasted");
         
-        this.gameSession = new GameSession(this);
+        // GameMode를 GameSession에 전달
+        this.gameSession = new GameSession(this, gameMode);
         System.out.println("✅ GameSession created");
         
         this.gameSession.startGame();
@@ -303,5 +307,17 @@ public class Room {
     
     public Collection<ClientHandler> getHandlers() {
         return handlers.values();
+    }
+    
+    // 게임 모드 설정
+    public void setGameMode(GameModeType gameMode) {
+        if (gameMode != null) {
+            this.gameMode = gameMode;
+            System.out.println("방 " + roomId + " 게임 모드 설정: " + gameMode.getDisplayName());
+        }
+    }
+    
+    public GameModeType getGameMode() {
+        return gameMode;
     }
 }

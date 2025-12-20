@@ -1,24 +1,34 @@
 package marchoffools.server.game;
 
+import marchoffools.common.model.GameMode;
+import marchoffools.common.model.GameModeType;
 import marchoffools.common.model.PlayerInfo;
+import marchoffools.server.game.mode.GameModeFactory;
 
 /**
  * 게임의 전체 상태를 관리하는 클래스
  */
 public class GameState {
-
+    
+    private GameMode gameMode;
     private CharacterController charController;
     private TrackController trackController;
+    private ObstacleSpawner spawner;
 
     private PlayerInfo knightPlayer;
     private PlayerInfo horsePlayer;
 
     private long gameStartTimeNanos = 0;
-    private static final long MAX_PLAY_TIME_MS = 180000; // 3분
+    private long lastSpawnConfigUpdate = 0;
+    private static final long CONFIG_UPDATE_INTERVAL = 1000; // 1초마다 체크
 
-    public GameState(Room room) {
+    public GameState(Room room, GameModeType modeType) {
+        // GameMode 생성 (Factory Pattern)
+        this.gameMode = GameModeFactory.create(modeType);
+        
         this.charController = new CharacterController();
-        this.trackController = new TrackController(room, charController);
+        this.trackController = new TrackController(charController);
+        this.spawner = new ObstacleSpawner();
         
         // 역할별 플레이어 찾기
         for (PlayerInfo player : room.getPlayers().values()) {
@@ -28,15 +38,32 @@ public class GameState {
                 this.horsePlayer = player;
             }
         }
+        
+        System.out.println("[GameState] Initialized with mode: " + modeType);
     }
 
     /**
-     * 게임 상태 업데이트
+     * 게임 상태 업데이트 (매 프레임마다 호출)
      */
     public void update(double deltaTime) {
-        charController.updateCharacterState(deltaTime);
+        double timeScale = gameMode.getTimeScale();
+        double scaledDelta = deltaTime * timeScale;
+        
+        String prevStageInfo = gameMode.getCurrentStageInfo();
+        
+        // 게임 모드 업데이트
+        gameMode.update(deltaTime);
+        
+        String currentStageInfo = gameMode.getCurrentStageInfo();
+        if (!prevStageInfo.equals(currentStageInfo)) {
+            spawner.updateStrategies(gameMode);
+            System.out.println("[GameState] Stage changed: " + prevStageInfo + " → " + currentStageInfo);
+        }
+        
+        // 게임 상태 업데이트
+        charController.updateCharacterState(scaledDelta);
         charController.updateSkills();
-        trackController.update(deltaTime);
+        trackController.update(scaledDelta);
     }
 
     // ========== 캐릭터 제어 위임 ==========
@@ -100,6 +127,10 @@ public class GameState {
     public TrackController getTrackController() {
         return trackController;
     }
+    
+    public ObstacleSpawner getSpawner() {
+        return spawner;
+    }
 
     // ========== 게임 상태 관리 ==========
 
@@ -107,7 +138,8 @@ public class GameState {
      * 게임이 종료되었는지 확인
      */
     public boolean isGameOver() {
-        return trackController.isGameOver() || getPlayTimeMs() >= MAX_PLAY_TIME_MS;
+        return trackController.isGameOver() || 
+               gameMode.isGameOver(getScore(), getPlayTime());
     }
 
     /**
@@ -129,8 +161,14 @@ public class GameState {
      */
     public void reset() {
         gameStartTimeNanos = System.nanoTime();
+        gameMode.reset();
+        spawner.reset();
+        spawner.updateStrategies(gameMode);
         charController.reset();
         trackController.reset();
+        lastSpawnConfigUpdate = System.currentTimeMillis();
+        
+        System.out.println("[GameState] Reset complete");
     }
 
     // ========== Getters ==========
@@ -145,5 +183,19 @@ public class GameState {
 
     public CharacterController getCharController() {
         return charController;
+    }
+    
+    public GameMode getGameMode() {
+        return gameMode;
+    }
+    
+    public String getGameModeName() {
+        return gameMode.getClass().getSimpleName()
+            .replace("Mode", "")
+            .toUpperCase(); // "INFINITE" 또는 "STAGE"
+    }
+
+    public String getCurrentStageInfo() {
+        return gameMode.getCurrentStageInfo();
     }
 }

@@ -10,17 +10,15 @@ import marchoffools.common.model.GameSkill;
 
 /**
  * 게임 트랙 및 장애물 관리 컨트롤러
+ * scrollSpeed는 GameMode에 의해 동적으로 설정됨
  */
 public class TrackController {
 
-    private static final double SCROLL_SPEED = 500.0; // 초당 픽셀
-
-    private Room room;
     private CharacterController charController;
     private List<ObstacleData> obstacles;
     
     private double distance = 0.0;
-    private double scrollSpeed = SCROLL_SPEED; // TODO: 시간 기반 배속 구현...
+    private double scrollSpeed = 500.0; // 초기값, 외부에서 설정됨
     private int score = 0;
     private boolean gameOver = false;
     
@@ -31,17 +29,16 @@ public class TrackController {
     private int obstaclesDestroyed = 0;
     private int obstaclesAvoided = 0;
 
-    public TrackController(Room room, CharacterController charController) {
-        this.room = room;
+    public TrackController(CharacterController charController) {
         this.charController = charController;
         this.obstacles = new CopyOnWriteArrayList<>();
     }
 
     /**
-     * 트랙 업데이트
+     * 트랙 업데이트 (매 프레임마다 호출)
      */
     public void update(double deltaTime) {
-        // 거리 증가
+        // scrollSpeed는 GameState에서 설정됨
         distance += scrollSpeed * deltaTime;
         
         // 거리 기반 점수 추가
@@ -74,7 +71,6 @@ public class TrackController {
             int meters = (int)(distanceTraveled / 100.0);
             score += meters * 10;
             lastScoredDistance += meters * 100.0;
-            System.out.println("[Score] Distance bonus: +" + meters + " (" + (int)(distance/100) + "m traveled)");
         }
     }
 
@@ -128,7 +124,6 @@ public class TrackController {
 
     /**
      * 활성화된 스킬과 몬스터 충돌 체크
-     * y축은 우선 무시하도록 구현(아직 밸런싱하지 않았음)
      */
     private void checkSkillCollisions() {
         boolean[] activeSkills = charController.getActiveSkills();
@@ -161,7 +156,7 @@ public class TrackController {
                 double thrustX = charX + charW;
                 double thrustY = 0;
                 int thrustW = GameConstants.THRUST_RANGE;
-                int thrustH = GameConstants.GAME_HEIGHT;  // 화면 전체 높이
+                int thrustH = GameConstants.GAME_HEIGHT;
                 
                 if (isColliding(thrustX, thrustY, thrustW, thrustH,
                               obs.getX(), obs.getY(), type.getWidth(), type.getHeight())) {
@@ -178,7 +173,7 @@ public class TrackController {
                 double slashX = charX + charW;
                 double slashY = 0;
                 int slashW = GameConstants.SLASH_RANGE;
-                int slashH = GameConstants.GAME_HEIGHT;  // 화면 전체 높이
+                int slashH = GameConstants.GAME_HEIGHT;
                 
                 if (isColliding(slashX, slashY, slashW, slashH,
                               obs.getX(), obs.getY(), type.getWidth(), type.getHeight())) {
@@ -222,7 +217,7 @@ public class TrackController {
                 // 장애물(말 담당): 회피 성공
                 if (type.isObstacle()) {
                     obstaclesAvoided++;
-                    score += 100; // 성공적으로 회피
+                    score += 100;
                     System.out.println("[TrackController] Avoided " + type.getDisplayName() + " (+100)");
                 }
                 // 몬스터(기사 담당): 그냥 지나침 (처치 실패는 점수 없음)
@@ -238,8 +233,15 @@ public class TrackController {
     public void addObstacle(ObstacleData obstacle) {
         obstacles.add(obstacle);
     }
+    
+    /**
+     * 스크롤 속도 설정 (GameMode에서 호출)
+     */
+    public void setScrollSpeed(double speed) {
+        this.scrollSpeed = speed;
+    }
 
-    // ========== Getters and Setters ==========
+    // ========== Getters ==========
 
     public double getDistance() {
         return distance;
@@ -261,10 +263,6 @@ public class TrackController {
         return scrollSpeed;
     }
 
-    public void setScrollSpeed(double scrollSpeed) {
-        this.scrollSpeed = scrollSpeed;
-    }
-
     public int getObstaclesDestroyed() {
         return obstaclesDestroyed;
     }
@@ -277,15 +275,15 @@ public class TrackController {
      * 트랙 상태 초기화
      */
     public void reset() {
-        distance = 0.0;
-        scrollSpeed = SCROLL_SPEED;
-        score = 0;
-        gameOver = false;
-        obstaclesDestroyed = 0;
-        obstaclesAvoided = 0;
-        obstacles.clear();
-        lastScoredDistance = 0.0;
-        
-        System.out.println("[TrackController] Reset complete - score system initialized");
-    }
+    	    distance = 0.0;
+    	    scrollSpeed = 500.0;
+    	    score = 0;
+    	    gameOver = false;
+    	    obstaclesDestroyed = 0;
+    	    obstaclesAvoided = 0;
+    	    lastScoredDistance = 0.0;
+    	    obstacles.clear();
+    	    
+    	    System.out.println("[TrackController] Reset complete");
+    	}
 }

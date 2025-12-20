@@ -10,6 +10,7 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
+import java.awt.GridLayout;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.io.IOException;
@@ -42,6 +43,7 @@ import marchoffools.client.ui.RatioLayout;
 import marchoffools.common.message.ChatMessage;
 import marchoffools.common.message.RoomActionMessage;
 import marchoffools.common.message.RoomInfoMessage;
+import marchoffools.common.model.GameModeType;
 import marchoffools.common.model.PlayerInfo;
 import marchoffools.common.protocol.MessageType;
 
@@ -91,6 +93,10 @@ public class LobbyScene extends Scene implements NetworkListener {
     
     private JLayeredPane layeredPane;
     private JPanel mainLayerPanel;
+    
+    private GameModeType selectedGameMode = GameModeType.INFINITE;
+    private Button bModeInfinite;
+    private Button bModeStage;
     
     private static final String[] KNIGHT_NAMES = {"Warrior", "Archer", "Axe"};
     private static final String[] KNIGHT_DESCS = {"강력한 근접 공격", "다양한 마법 스킬", "원거리 제압 특화"};
@@ -283,14 +289,10 @@ public class LobbyScene extends Scene implements NetworkListener {
         panel.setLayout(new RatioLayout(RatioLayout.VERTICAL, 15));
         panel.setOpaque(false);
 
-        // 1. 플레이어 목록 & 역할 선택
-        panel.add(createPlayerSection(), Integer.valueOf(4));
-        
-        // 2. 방 ID 정보
-        panel.add(createRoomIdSection(), Integer.valueOf(2));
-        
-        // 3. 준비/시작 버튼
-        panel.add(createActionButtonsSection(), Integer.valueOf(2));
+        panel.add(createPlayerSection(), Integer.valueOf(40));
+        panel.add(createGameModeSection(), Integer.valueOf(15));
+        panel.add(createRoomIdSection(), Integer.valueOf(15));
+        panel.add(createActionButtonsSection(), Integer.valueOf(30));
 
         return panel;
     }
@@ -381,6 +383,70 @@ public class LobbyScene extends Scene implements NetworkListener {
         
         return panel;
     }
+    
+    private JPanel createGameModeSection() {
+        JPanel panel = new JPanel(new BorderLayout(0, 8));
+        applySectionStyle(panel);
+        
+        // 제목
+        JLabel lTitle = new JLabel("게임 모드");
+        lTitle.setFont(getFont().deriveFont(Font.BOLD, 14f));
+        lTitle.setForeground(BLACK);
+        panel.add(lTitle, BorderLayout.NORTH);
+        
+        // 버튼 패널
+        JPanel buttonPanel = new JPanel(new GridLayout(1, 2, 10, 0));
+        buttonPanel.setOpaque(false);
+        
+        // 무한 모드 버튼
+        bModeInfinite = new Button("무한");
+        bModeInfinite.setFont(getFont().deriveFont(12f));
+        bModeInfinite.setPreferredSize(new Dimension(80, 35));
+        bModeInfinite.addActionListener(e -> selectGameMode(GameModeType.INFINITE));
+        buttonPanel.add(bModeInfinite);
+        
+        // 스테이지 모드 버튼
+        bModeStage = new Button("스테이지");
+        bModeStage.setFont(getFont().deriveFont(12f));
+        bModeStage.setPreferredSize(new Dimension(80, 35));
+        bModeStage.addActionListener(e -> selectGameMode(GameModeType.STAGE));
+        buttonPanel.add(bModeStage);
+        
+        panel.add(buttonPanel, BorderLayout.CENTER);
+        
+        // 초기 상태 설정
+        updateGameModeButtons();
+        
+        return panel;
+    }
+
+    private void selectGameMode(GameModeType mode) {
+        this.selectedGameMode = mode;
+        updateGameModeButtons();
+        
+        NetworkManager nm = getNetworkManager();
+        if (nm != null) {
+            RoomActionMessage msg = new RoomActionMessage(nm.getPlayerId(), RoomActionMessage.SELECT_MODE);
+            msg.setGameMode(mode);
+            nm.sendMessage(MessageType.ROOM_ACTION, msg);
+        }
+        
+        System.out.println("게임 모드 선택: " + mode.getDisplayName());
+    }
+
+    private void updateGameModeButtons() {
+        if (selectedGameMode == GameModeType.INFINITE) {
+            bModeInfinite.setButtonColors(BLUE, BLUE, BLUE_PRESSED);
+            bModeInfinite.setForeground(WHITE);
+            bModeStage.setButtonColors(LIGHT_GRAY, WHITE, GRAY);
+            bModeStage.setForeground(BLACK);
+        } else {
+            bModeInfinite.setButtonColors(LIGHT_GRAY, WHITE, GRAY);
+            bModeInfinite.setForeground(BLACK);
+            bModeStage.setButtonColors(BLUE, BLUE, BLUE_PRESSED);
+            bModeStage.setForeground(WHITE);
+        }
+    }
 
     private JPanel createRoomIdSection() {
         JPanel section = new JPanel();
@@ -428,7 +494,7 @@ public class LobbyScene extends Scene implements NetworkListener {
         pRoomIdContent.setVisible(false);
         
         lRoomIdValue = new JLabel("------");
-        lRoomIdValue.setFont(getFont().deriveFont(Font.BOLD, 32f));
+        lRoomIdValue.setFont(getFont().deriveFont(Font.BOLD, 20f));
         lRoomIdValue.setForeground(BLACK);
         lRoomIdValue.setAlignmentX(CENTER_ALIGNMENT);
         pRoomIdContent.add(lRoomIdValue);
@@ -462,11 +528,11 @@ public class LobbyScene extends Scene implements NetworkListener {
 
         // 준비 버튼
         bReady = new Button("Ready");
-        bReady.setFont(getFont().deriveFont(Font.BOLD, 36f));
+        bReady.setFont(getFont().deriveFont(Font.BOLD, 28f));
         bReady.setForeground(WHITE);
         bReady.setButtonColors(LIGHT_GRAY, LIGHT_GRAY, LIGHT_GRAY.darker());
         bReady.setMinimumSize(new Dimension(100, 60));
-        bReady.setMaximumSize(new Dimension(Short.MAX_VALUE, 80));
+        bReady.setMaximumSize(new Dimension(Short.MAX_VALUE, 60));
         bReady.setPreferredSize(new Dimension(100, 80));
         bReady.setBorder(BorderFactory.createLineBorder(GRAY, 2));
         bReady.addActionListener(e -> handleReady());
@@ -479,7 +545,8 @@ public class LobbyScene extends Scene implements NetworkListener {
         bStart.setFont(getFont().deriveFont(Font.BOLD, 24f));
         bStart.setButtonColors(BLUE, BLUE.brighter(), BLUE_PRESSED);
         bStart.setForeground(WHITE);
-        bStart.setMaximumSize(new Dimension(Short.MAX_VALUE, 50));
+        bStart.setMaximumSize(new Dimension(Short.MAX_VALUE, 45));
+        bStart.setPreferredSize(new Dimension(100, 45));
         bStart.setVisible(false); // 방장만 보임
         bStart.addActionListener(e -> handleStart());
         
@@ -764,6 +831,11 @@ public class LobbyScene extends Scene implements NetworkListener {
         this.players = msg.getPlayers();
         this.canStart = msg.isCanStart();
         
+        if (msg.getGameMode() != null) {
+            this.selectedGameMode = msg.getGameMode();
+            updateGameModeButtons();
+        }
+        
         refreshUI();
     }
     
@@ -844,6 +916,12 @@ public class LobbyScene extends Scene implements NetworkListener {
             
             bStart.setVisible(isHost);
             bStart.setEnabled(canStart);
+            
+            // 게임 모드 버튼 - 방장만 활성화
+            if (bModeInfinite != null && bModeStage != null) {
+                bModeInfinite.setEnabled(isHost);
+                bModeStage.setEnabled(isHost);
+            }
             
             if (canStart) {
                 bStart.setButtonColors(BLUE, BLUE.brighter(), BLUE_PRESSED);
@@ -951,6 +1029,7 @@ public class LobbyScene extends Scene implements NetworkListener {
         if (nm == null) return;
         
         RoomActionMessage msg = new RoomActionMessage(nm.getPlayerId(), START_GAME);
+        msg.setGameMode(GameModeType.STAGE);
         nm.sendMessage(MessageType.ROOM_ACTION, msg);
     }
     
